@@ -12,22 +12,56 @@ real QA/purchasing decisions.
 
 ## What it does
 
-1. **Upload an MTR** (text-extractable PDF or `.txt`) for a supplier shipment.
-2. **AI extraction** pulls out heat number, alloy code, standard, chemical
-   composition (wt%) and mechanical properties. Uses Claude when
-   `ANTHROPIC_API_KEY` is set; otherwise falls back to a regex-based
-   heuristic parser so the whole flow still works offline/without a key.
-3. **Compliance engine** matches the extracted alloy/standard against a spec
+1. **Upload an MTR** — a native PDF, a scanned/photographed PDF or image
+   (JPG/PNG/TIFF), or a `.txt` copy.
+2. **Get text out of the document, for free.** Native PDFs are read directly
+   (`pypdf`). Anything else — a scan, a photo of a paper cert, a PDF with no
+   text layer — goes through **local OCR (Tesseract)**, entirely on-device.
+   No network call, no API token spent on this step, regardless of volume.
+   See **Local OCR pipeline** below.
+3. **Structure the text into fields.** By default this is a **free,
+   regex-based local parser** (heat number, alloy code, standard, chemistry,
+   mechanical properties) — zero tokens. AI-assisted parsing (Claude) is
+   available as an **opt-in checkbox** on the upload form for the rare
+   document the local parser can't read; it only ever sends the already-OCR'd
+   *text* (a few hundred tokens), never the image, so even the opt-in path is
+   far cheaper than image/vision-based extraction.
+4. **Compliance engine** matches the extracted alloy/standard against a spec
    library (chemistry + mechanical limits) and produces a per-element
    PASS / WARNING (within 5% of a limit) / FAIL / INFO verdict, plus an
    overall verdict.
-4. **Environmental certificate tracker** — RoHS, REACH, Prop 65, Conflict
+5. **Environmental certificate tracker** — RoHS, REACH, Prop 65, Conflict
    Minerals, DZR, etc. per supplier, with expiry-date status (valid /
    expiring soon / expired).
-5. **Risk dashboard** — pass/warning/fail counts, highest non-conformance-rate
+6. **Risk dashboard** — pass/warning/fail counts, highest non-conformance-rate
    suppliers, certificates needing attention.
-6. **Audit log** — every upload, compliance check, and export is timestamped
-   for audit readiness. Compliance results are exportable as CSV.
+7. **Audit log** — every upload, compliance check, and export is timestamped,
+   including which text source and parser were used, for audit readiness and
+   token-spend transparency. Compliance results are exportable as CSV.
+
+## Local OCR pipeline (no per-page API cost)
+
+Scanned/photographed certificates are handled entirely locally:
+
+1. `pypdf` tries to read a text layer directly. If a PDF yields at least ~40
+   characters of native text, that's used as-is (`text_source = native_pdf`)
+   — no OCR needed.
+2. Otherwise (a scan, a photo, or an image upload), `PyMuPDF` renders each
+   page to a 300 DPI image and **Tesseract OCR** reads it
+   (`text_source = ocr`). Language pack: `eng+chi_tra+chi_sim+vie`, covering
+   the languages these supplier certs are typically issued in.
+3. The resulting text — regardless of source — goes through the same free
+   local parser by default. There is no per-page or per-document API charge
+   anywhere in this path.
+
+This requires the Tesseract system binary and language data, which is **not**
+a Python package and must be installed separately:
+
+```bash
+apt-get install tesseract-ocr tesseract-ocr-chi-tra tesseract-ocr-chi-sim tesseract-ocr-vie
+```
+
+(Add `tesseract-ocr-jpn` too if you also receive Japanese-language certs.)
 
 ## Spec library (seeded)
 
@@ -46,11 +80,14 @@ detail pages.
 ## Setup & run
 
 ```bash
+# system dependency for local OCR (one-time, not a pip package)
+apt-get install tesseract-ocr tesseract-ocr-chi-tra tesseract-ocr-chi-sim tesseract-ocr-vie
+
 cd mtr_compliance_platform
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
-# optional — enables real AI extraction instead of the regex fallback
+# optional — only needed if you plan to tick "Use AI-assisted parsing"
 export ANTHROPIC_API_KEY=sk-ant-...
 
 .venv/bin/uvicorn app.main:app --reload --port 8811
@@ -62,6 +99,9 @@ the sample certificates in `sample_data/`:
 - `sample_mtr_c46400.txt` — clean cert, should come back **PASS**.
 - `sample_mtr_c46400_fail.txt` — high lead/iron, low tensile strength,
   should come back **FAIL** (demonstrates dezincification-risk detection).
+- `sample_mtr_c46400_scanned.png` — the same clean cert rendered as an image,
+  to exercise the local-OCR path (`text_source = ocr`) — should also come
+  back **PASS**, entirely without calling any API.
 
 The SQLite database lives at `data/compliance.db` (gitignored) and is
 recreated with seed data automatically if missing.
@@ -72,7 +112,10 @@ recreated with seed data automatically if missing.
 app/
   models.py       SQLModel tables: Supplier, MaterialSpec, Certificate,
                    ComplianceResult, EnvCertificate, AuditLog
-  extraction.py    PDF/text -> structured data (Claude tool-use, or regex fallback)
+  ocr.py           Local, free text extraction: native PDF text, else
+                   PyMuPDF page rendering + Tesseract OCR
+  extraction.py    OCR'd/native text -> structured fields (free regex parser
+                   by default; opt-in Claude tool-use path)
   compliance.py    Spec matching + per-element PASS/WARNING/FAIL/INFO logic
   seed_data.py     Demo spec library + demo suppliers
   audit.py         Audit log writer + env-cert expiry status
@@ -82,9 +125,14 @@ app/
 
 ## Known limitations (MVP scope)
 
-- **Scanned/image-only PDFs are not OCR'd.** Only text-extractable PDFs and
-  `.txt` work today. Adding Claude-vision or Tesseract OCR for scanned
-  certs is the natural next step.
+- **OCR accuracy depends on scan/photo quality.** Tesseract does reasonably
+  on clean 300 DPI scans of typed tables; skewed photos, low resolution, or
+  handwritten certs will need better source images or a heavier OCR engine.
+  Always spot-check `extracted_data` against the original document.
+- **The local parser is regex-based**, so it expects roughly
+  label-then-number patterns (e.g. "Cu 60.5", "Tensile Strength 58 ksi").
+  Certs with unusual layouts may need the opt-in AI-assisted parsing
+  checkbox, or a rule tweak in `extraction.py`.
 - **Spec library is a small demo set.** Real use needs the full grade list
   Legend Valve actually buys, sourced from the current standard text, plus
   a way to add/edit specs from the UI (currently seed-data only).

@@ -62,6 +62,7 @@ class Certificate(SQLModel, table=True):
     alloy_code_claimed: Optional[str] = None
     standard_claimed: Optional[str] = None
     raw_text: str = ""
+    text_source: str = "plain_text"               # native_pdf | ocr | plain_text
     extracted_data: dict = Field(default_factory=dict, sa_column=Column(JSON))
     extraction_method: str = "heuristic"          # ai | heuristic | manual
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)

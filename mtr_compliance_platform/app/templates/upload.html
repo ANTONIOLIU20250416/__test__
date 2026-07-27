@@ -2,14 +2,14 @@
 {% block title %}Upload MTR{% endblock %}
 {% block content %}
 <h1>Upload Material Test Report</h1>
-<p class="subtitle">Accepts a text-extractable PDF or a .txt copy of the certificate. The platform will extract chemistry/mechanical data and check it against the spec library.</p>
+<p class="subtitle">Accepts a native PDF, a scanned/photographed PDF or image (JPG/PNG/TIFF), or a .txt copy. Scanned documents are read with local OCR (Tesseract, eng+chi_tra+chi_sim+vie) — no API tokens used unless you opt in below.</p>
 
 <div class="disclaimer">Spec library values are demo/representative — verify against the current official standard before real QA decisions.</div>
 
 <div class="card">
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
   <form method="post" action="/upload" enctype="multipart/form-data">
-    <label>MTR file (.pdf or .txt)</label>
+    <label>MTR file (.pdf, .jpg, .png, .tiff, or .txt)</label>
     <input type="file" name="file" required>
 
     <label>Supplier</label>
@@ -30,6 +30,12 @@
 
     <label>Standard override (optional)</label>
     <input type="text" name="standard_override" placeholder="e.g. ASTM B124">
+
+    <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+      <input type="checkbox" name="use_ai" value="true" style="width:auto;">
+      Use AI-assisted parsing (Claude) instead of the local rule-based parser — spends API tokens.
+      Only useful if the local parser mis-reads a document; leave unchecked by default.
+    </label>
 
     <button type="submit">Analyze Certificate</button>
   </form>

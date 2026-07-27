@@ -7,7 +7,8 @@
   Heat No.: {{ cert.heat_number or "—" }} ·
   Part: {{ cert.part_number or "—" }} ·
   PO: {{ cert.po_reference or "—" }} ·
-  Extraction: {{ cert.extraction_method }}
+  Text source: <strong>{{ {"native_pdf": "native PDF text (free)", "ocr": "local OCR — Tesseract (free)", "plain_text": "plain text upload (free)"}.get(cert.text_source, cert.text_source) }}</strong> ·
+  Parsing: <strong>{{ "AI (Claude — used tokens)" if cert.extraction_method == "ai" else "local rules (free)" }}</strong>
 </p>
 
 <div class="card">

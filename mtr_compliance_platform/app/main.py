@@ -13,8 +13,9 @@ from sqlmodel import Session, select
 from .audit import env_cert_status, log_action
 from .compliance import evaluate_compliance, find_matching_spec
 from .database import engine, get_session, init_db
-from .extraction import extract_mtr_data, pdf_bytes_to_text
+from .extraction import extract_mtr_data
 from .models import Certificate, ComplianceResult, EnvCertificate, MaterialSpec, Supplier, Verdict
+from .ocr import get_document_text
 from .seed_data import seed_if_empty
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -92,22 +93,20 @@ def upload_submit(
     po_reference: str = Form(""),
     alloy_override: str = Form(""),
     standard_override: str = Form(""),
+    use_ai: bool = Form(False),
     session: Session = Depends(get_session),
 ):
     raw = file.file.read()
-    if file.filename.lower().endswith(".pdf"):
-        text = pdf_bytes_to_text(raw)
-    else:
-        text = raw.decode("utf-8", errors="ignore")
+    text, text_source = get_document_text(file.filename, raw)
 
     if not text.strip():
         suppliers = session.exec(select(Supplier)).all()
         return templates.TemplateResponse("upload.html", {
             "request": request, "suppliers": suppliers,
-            "error": "No extractable text found (scanned-image PDFs need an OCR step not yet wired into this MVP).",
+            "error": "No text could be read from this file, even after local OCR — it may be blank, corrupted, or too low-resolution to recognize.",
         })
 
-    extracted, method = extract_mtr_data(text)
+    extracted, method = extract_mtr_data(text, allow_ai=use_ai)
     alloy_code = alloy_override.strip() or extracted.get("alloy_code")
     standard = standard_override.strip() or extracted.get("standard")
 
@@ -120,13 +119,16 @@ def upload_submit(
         alloy_code_claimed=alloy_code,
         standard_claimed=standard,
         raw_text=text[:20000],
+        text_source=text_source,
         extracted_data=extracted,
         extraction_method=method,
     )
     session.add(cert)
     session.commit()
     session.refresh(cert)
-    log_action(session, "Certificate", cert.id, "uploaded", {"method": method, "file_name": file.filename})
+    log_action(session, "Certificate", cert.id, "uploaded", {
+        "text_source": text_source, "extraction_method": method, "ai_requested": use_ai, "file_name": file.filename,
+    })
 
     spec = find_matching_spec(session, alloy_code, standard)
     verdict, element_results = evaluate_compliance(extracted, spec)

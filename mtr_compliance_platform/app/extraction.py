@@ -54,9 +54,14 @@ def pdf_bytes_to_text(data: bytes) -> str:
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 
 
-def extract_mtr_data(text: str) -> tuple[dict, str]:
-    """Returns (extracted_dict, method) where method is 'ai' or 'heuristic'."""
-    if os.environ.get("ANTHROPIC_API_KEY"):
+def extract_mtr_data(text: str, allow_ai: bool = False) -> tuple[dict, str]:
+    """Returns (extracted_dict, method) where method is 'ai' or 'heuristic'.
+
+    `allow_ai` is opt-in and False by default: structuring the already-local
+    (native-text or OCR'd) document text is done by the free regex parser
+    unless the caller explicitly asks to spend API tokens on the Claude path.
+    """
+    if allow_ai and os.environ.get("ANTHROPIC_API_KEY"):
         try:
             return _extract_with_ai(text), "ai"
         except Exception as exc:  # network/SDK issues fall back gracefully
