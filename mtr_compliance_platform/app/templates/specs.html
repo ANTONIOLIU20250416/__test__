@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Spec Library{% endblock %}
+{% block content %}
+<h1>Material Spec Library</h1>
+<div class="disclaimer">Demo/representative values — verify against the current official ASTM/JIS/CNS standard text before real use.</div>
+<div class="card">
+  <table>
+    <tr><th>Alloy</th><th>Name</th><th>Standard</th><th>Category</th><th>Chemistry limits (wt%)</th><th>Mechanical limits</th></tr>
+    {% for s in specs %}
+    <tr>
+      <td>{{ s.alloy_code }}</td>
+      <td>{{ s.alloy_name }}</td>
+      <td>{{ s.standard }}</td>
+      <td>{{ s.category }}</td>
+      <td>
+        {% for el, lim in s.chemistry_limits.items() %}
+          {{ el }}: {% if lim.remainder %}remainder{% else %}{{ lim.min if lim.min is defined else "—" }}–{{ lim.max if lim.max is defined else "—" }}{% endif %}<br>
+        {% else %}—{% endfor %}
+      </td>
+      <td>
+        {% for p, lim in s.mechanical_limits.items() %}
+          {{ p }}: ≥{{ lim.min if lim.min is defined else "—" }}<br>
+        {% else %}—{% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

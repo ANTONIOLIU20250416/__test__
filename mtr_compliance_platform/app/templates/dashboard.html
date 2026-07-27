@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — MTR Compliance Platform{% endblock %}
+{% block content %}
+<h1>Risk & Compliance Overview</h1>
+<p class="subtitle">Prototype AI-powered compliance platform for copper alloy &amp; iron plumbing components (MTR analysis, environmental certs, audit trail).</p>
+
+<div class="card">
+  <h2>Certificates ({{ total_certs }} total)</h2>
+  <div class="grid">
+    <div class="stat"><div class="num" style="color:#1f8a4c">{{ verdict_counts.PASS }}</div><div class="label">Pass</div></div>
+    <div class="stat"><div class="num" style="color:#b4790e">{{ verdict_counts.WARNING }}</div><div class="label">Warning</div></div>
+    <div class="stat"><div class="num" style="color:#c0392b">{{ verdict_counts.FAIL }}</div><div class="label">Fail</div></div>
+    <div class="stat"><div class="num" style="color:#6b7280">{{ verdict_counts.UNVERIFIED }}</div><div class="label">Unverified</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Highest-Risk Suppliers</h2>
+  {% if risk_suppliers %}
+  <table>
+    <tr><th>Supplier</th><th>Certificates</th><th>Fail</th><th>Warning</th><th>Non-conformance rate</th></tr>
+    {% for s in risk_suppliers %}
+    <tr>
+      <td>{{ s.name }}</td>
+      <td>{{ s.total }}</td>
+      <td>{{ s.fail }}</td>
+      <td>{{ s.warning }}</td>
+      <td>{{ s.risk_rate }}%</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No certificates uploaded yet.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Environmental / Regulatory Certificates Needing Attention</h2>
+  {% if expiring_env_certs %}
+  <table>
+    <tr><th>Type</th><th>Reference</th><th>Expiry</th><th>Status</th></tr>
+    {% for e in expiring_env_certs %}
+    <tr>
+      <td>{{ e.cert_type }}</td>
+      <td>{{ e.reference_no or "—" }}</td>
+      <td>{{ e.expiry_date or "—" }}</td>
+      <td><span class="badge {{ env_cert_status(e.expiry_date) }}">{{ env_cert_status(e.expiry_date) }}</span></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No expiring or expired environmental certificates.</p>
+  {% endif %}
+</div>
+{% endblock %}

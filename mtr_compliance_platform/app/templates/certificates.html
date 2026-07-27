@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Certificates{% endblock %}
+{% block content %}
+<h1>Certificates</h1>
+<div class="card">
+  {% if rows %}
+  <table>
+    <tr><th>Uploaded</th><th>Supplier</th><th>Heat No.</th><th>Alloy</th><th>Standard</th><th>Verdict</th></tr>
+    {% for row in rows %}
+    <tr>
+      <td><a class="row-link" href="/certificates/{{ row.cert.id }}">{{ row.cert.uploaded_at.strftime("%Y-%m-%d %H:%M") }}</a></td>
+      <td>{{ row.supplier.name if row.supplier else "—" }}</td>
+      <td>{{ row.cert.heat_number or "—" }}</td>
+      <td>{{ row.cert.alloy_code_claimed or "—" }}</td>
+      <td>{{ row.cert.standard_claimed or "—" }}</td>
+      <td>{% if row.result %}<span class="badge {{ row.result.overall_verdict }}">{{ row.result.overall_verdict }}</span>{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No certificates uploaded yet. <a href="/upload">Upload one</a>.</p>
+  {% endif %}
+</div>
+{% endblock %}

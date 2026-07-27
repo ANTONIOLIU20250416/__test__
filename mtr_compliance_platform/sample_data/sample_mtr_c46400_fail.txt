@@ -1,0 +1,24 @@
+MILL TEST REPORT / CERTIFICATE OF CONFORMANCE
+
+Supplier: Ningbo Ductile Iron Ltd.
+Customer: Legend Valve
+Part No: LV-4021-ROD
+PO No: PO-2026-0812
+Heat No: H26-09217
+Alloy: C46400 (Naval Brass, Uninhibited)
+Standard: ASTM B124
+Product Form: Extruded Rod, Temper M20
+
+CHEMICAL COMPOSITION (Wt. %)
+Cu   58.40
+Sn   0.65
+Pb   0.55
+Fe   0.14
+Zn   Remainder
+
+MECHANICAL PROPERTIES
+Tensile Strength   52.0 ksi
+Yield Strength      24.0 ksi
+Elongation          28 %
+
+Quality Manager: __________________  Date: 2026-07-15

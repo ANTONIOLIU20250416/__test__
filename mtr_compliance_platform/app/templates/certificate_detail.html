@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Certificate #{{ cert.id }}{% endblock %}
+{% block content %}
+<h1>Certificate #{{ cert.id }} — {{ cert.file_name }}</h1>
+<p class="subtitle">
+  Supplier: {{ supplier.name if supplier else "—" }} ·
+  Heat No.: {{ cert.heat_number or "—" }} ·
+  Part: {{ cert.part_number or "—" }} ·
+  PO: {{ cert.po_reference or "—" }} ·
+  Extraction: {{ cert.extraction_method }}
+</p>
+
+<div class="card">
+  <h2>Compliance Verdict
+    {% if result %}<span class="badge {{ result.overall_verdict }}">{{ result.overall_verdict }}</span>{% endif %}
+  </h2>
+  <p class="muted">
+    Claimed alloy: <strong>{{ cert.alloy_code_claimed or "—" }}</strong> ·
+    Claimed standard: <strong>{{ cert.standard_claimed or "—" }}</strong>
+    {% if spec %} · Matched spec: <strong>{{ spec.alloy_code }} ({{ spec.standard }})</strong>{% else %} · <span class="error">No matching spec in library</span>{% endif %}
+  </p>
+
+  {% if spec %}<div class="disclaimer">{{ spec.notes }}</div>{% endif %}
+
+  {% if result and result.element_results %}
+  <table>
+    <tr><th>Group</th><th>Parameter</th><th>Value</th><th>Min</th><th>Max</th><th>Status</th></tr>
+    {% for r in result.element_results %}
+    <tr>
+      <td>{{ r.group }}</td>
+      <td>{{ r.parameter }}</td>
+      <td>{{ r.value if r.value is not none else "not reported" }}</td>
+      <td>{{ r.min if r.min is not none else "—" }}</td>
+      <td>{{ r.max if r.max is not none else "—" }}</td>
+      <td><span class="badge {{ 'PASS' if r.status == 'PASS' else ('WARNING' if r.status in ['WARNING','MISSING'] else ('UNVERIFIED' if r.status=='INFO' else 'FAIL')) }}">{{ r.status }}</span></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <a class="btn secondary" href="/certificates/{{ cert.id }}/export.csv">Export CSV</a>
+  {% else %}
+  <p class="muted">No spec matched — nothing to compare. Try re-uploading with an alloy/standard override.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Raw Extracted Data</h2>
+  <pre style="white-space:pre-wrap;font-size:0.85rem;">{{ cert.extracted_data }}</pre>
+</div>
+{% endblock %}
