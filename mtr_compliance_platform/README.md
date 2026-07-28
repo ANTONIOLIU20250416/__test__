@@ -136,9 +136,11 @@ app/
   label-then-number patterns (e.g. "Cu 60.5", "Tensile Strength 58 ksi").
   Certs with unusual layouts may need the opt-in AI-assisted parsing
   checkbox, or a rule tweak in `extraction.py`.
-- **Spec library is a small demo set.** Real use needs the full grade list
-  Legend Valve actually buys, sourced from the current standard text, plus
-  a way to add/edit specs from the UI (currently seed-data only).
+- **Spec library ships with a small demo set**, but the `/specs` page has an
+  "Add a Material Spec" form to add real grades yourself (up to 8 chemistry
+  elements + tensile/yield/elongation/hardness limits) — no code editing
+  needed. User-added specs are marked "Custom" vs. the seeded "Demo" ones.
+  Editing/deleting an existing spec from the UI isn't built yet.
 - **No authentication / multi-tenant separation** — single-user local app.
   Add auth before deploying anywhere shared.
 - **No PO/BOM linking** — certificates aren't yet tied to purchase order

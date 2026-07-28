@@ -196,6 +196,55 @@ def specs_list(request: Request, session: Session = Depends(get_session)):
     return templates.TemplateResponse(request, "specs.html", {"specs": specs})
 
 
+@app.post("/specs")
+async def specs_add(request: Request, session: Session = Depends(get_session)):
+    form = await request.form()
+
+    chemistry_limits = {}
+    for i in range(1, 9):
+        name = (form.get(f"el{i}_name") or "").strip()
+        if not name:
+            continue
+        if form.get(f"el{i}_remainder") == "true":
+            chemistry_limits[name] = {"remainder": True}
+            continue
+        limit = {}
+        min_v, max_v = form.get(f"el{i}_min"), form.get(f"el{i}_max")
+        if min_v:
+            limit["min"] = float(min_v)
+        if max_v:
+            limit["max"] = float(max_v)
+        if limit:
+            chemistry_limits[name] = limit
+
+    mechanical_limits = {}
+    for key, form_key, bound in [
+        ("tensile_strength_mpa", "tensile_min", "min"),
+        ("yield_strength_mpa", "yield_min", "min"),
+        ("elongation_pct", "elongation_min", "min"),
+        ("hardness_hb", "hardness_max", "max"),
+    ]:
+        value = form.get(form_key)
+        if value:
+            mechanical_limits[key] = {bound: float(value)}
+
+    spec = MaterialSpec(
+        alloy_code=(form.get("alloy_code") or "").strip().upper(),
+        alloy_name=(form.get("alloy_name") or "").strip(),
+        standard=(form.get("standard") or "").strip(),
+        category=form.get("category") or "copper_alloy",
+        chemistry_limits=chemistry_limits,
+        mechanical_limits=mechanical_limits,
+        notes=(form.get("notes") or "").strip() or None,
+        is_demo_data=False,
+    )
+    session.add(spec)
+    session.commit()
+    session.refresh(spec)
+    log_action(session, "MaterialSpec", spec.id, "created", {"alloy_code": spec.alloy_code, "standard": spec.standard})
+    return RedirectResponse(url="/specs", status_code=303)
+
+
 @app.get("/env-certificates", response_class=HTMLResponse)
 def env_certs_list(request: Request, session: Session = Depends(get_session)):
     certs = session.exec(select(EnvCertificate).order_by(EnvCertificate.expiry_date)).all()
