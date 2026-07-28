@@ -1,5 +1,6 @@
 import csv
 import io
+import os
 from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
@@ -13,9 +14,9 @@ from sqlmodel import Session, select
 from .audit import env_cert_status, log_action
 from .compliance import evaluate_compliance, find_matching_spec
 from .database import engine, get_session, init_db
-from .extraction import extract_mtr_data
+from .extraction import extract_mtr_data, extract_mtr_data_from_images
 from .models import Certificate, ComplianceResult, EnvCertificate, MaterialSpec, Supplier, Verdict
-from .ocr import get_document_text
+from .ocr import file_to_images, get_document_text
 from .seed_data import seed_if_empty
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -93,19 +94,33 @@ def upload_submit(
     alloy_override: str = Form(""),
     standard_override: str = Form(""),
     use_ai: bool = Form(False),
+    use_vision: bool = Form(False),
     session: Session = Depends(get_session),
 ):
     raw = file.file.read()
     text, text_source = get_document_text(file.filename, raw)
 
-    if not text.strip():
-        suppliers = session.exec(select(Supplier)).all()
-        return templates.TemplateResponse(request, "upload.html", {
-            "suppliers": suppliers,
-            "error": "No text could be read from this file, even after local OCR — it may be blank, corrupted, or too low-resolution to recognize.",
-        })
+    extracted, method, vision_error = None, None, None
+    if use_vision and os.environ.get("ANTHROPIC_API_KEY"):
+        images = file_to_images(file.filename, raw)
+        if images:
+            try:
+                extracted, method = extract_mtr_data_from_images(images), "ai_vision"
+            except Exception as exc:  # network/SDK issues fall back to the text-based path
+                vision_error = str(exc)
 
-    extracted, method = extract_mtr_data(text, allow_ai=use_ai)
+    if extracted is None:
+        if not text.strip():
+            suppliers = session.exec(select(Supplier)).all()
+            detail = f" (AI vision also failed: {vision_error})" if vision_error else ", even after local OCR"
+            return templates.TemplateResponse(request, "upload.html", {
+                "suppliers": suppliers,
+                "error": f"No text could be read from this file{detail} — it may be blank, corrupted, or too low-resolution to recognize.",
+            })
+        extracted, method = extract_mtr_data(text, allow_ai=use_ai)
+        if vision_error:
+            extracted["_vision_error"] = vision_error
+
     alloy_code = alloy_override.strip() or extracted.get("alloy_code")
     standard = standard_override.strip() or extracted.get("standard")
 
@@ -126,7 +141,8 @@ def upload_submit(
     session.commit()
     session.refresh(cert)
     log_action(session, "Certificate", cert.id, "uploaded", {
-        "text_source": text_source, "extraction_method": method, "ai_requested": use_ai, "file_name": file.filename,
+        "text_source": text_source, "extraction_method": method,
+        "ai_requested": use_ai, "vision_requested": use_vision, "file_name": file.filename,
     })
 
     spec = find_matching_spec(session, alloy_code, standard)
@@ -169,6 +185,108 @@ def certificate_detail(cert_id: int, request: Request, session: Session = Depend
     return templates.TemplateResponse(request, "certificate_detail.html", {
         "cert": cert, "result": result, "spec": spec, "supplier": supplier,
     })
+
+
+CERT_MECHANICAL_FIELDS = [
+    ("tensile_strength_mpa", "tensile_value"),
+    ("yield_strength_mpa", "yield_value"),
+    ("elongation_pct", "elongation_value"),
+    ("hardness_hb", "hardness_value"),
+]
+
+
+def _cert_form_rows(cert: Optional[Certificate] = None) -> list:
+    rows = []
+    items = list((cert.extracted_data.get("chemistry") or {}).items()) if cert else []
+    for i in range(12):
+        if i < len(items):
+            name, value = items[i]
+            rows.append({"name": name, "value": value})
+        else:
+            rows.append({"name": "", "value": ""})
+    return rows
+
+
+def _cert_mechanical_values(cert: Optional[Certificate] = None) -> dict:
+    values = {k: "" for _, k in CERT_MECHANICAL_FIELDS}
+    if cert:
+        m = cert.extracted_data.get("mechanical") or {}
+        for key, form_key in CERT_MECHANICAL_FIELDS:
+            if key in m:
+                values[form_key] = m[key]
+    return values
+
+
+def _parse_cert_edit_form(form) -> dict:
+    chemistry = {}
+    for i in range(1, 13):
+        name = (form.get(f"el{i}_name") or "").strip()
+        value = form.get(f"el{i}_value")
+        if name and value:
+            chemistry[name] = float(value)
+
+    mechanical = {}
+    for key, form_key in CERT_MECHANICAL_FIELDS:
+        value = form.get(form_key)
+        if value:
+            mechanical[key] = float(value)
+
+    return dict(
+        heat_number=(form.get("heat_number") or "").strip() or None,
+        alloy_code=(form.get("alloy_code") or "").strip().upper() or None,
+        standard=(form.get("standard") or "").strip() or None,
+        part_number=(form.get("part_number") or "").strip() or None,
+        chemistry=chemistry,
+        mechanical=mechanical,
+    )
+
+
+@app.get("/certificates/{cert_id}/edit", response_class=HTMLResponse)
+def certificate_edit_form(cert_id: int, request: Request, session: Session = Depends(get_session)):
+    cert = session.get(Certificate, cert_id)
+    return templates.TemplateResponse(request, "certificate_edit.html", {
+        "cert": cert,
+        "el_rows": _cert_form_rows(cert),
+        "mech": _cert_mechanical_values(cert),
+    })
+
+
+@app.post("/certificates/{cert_id}/edit")
+async def certificate_edit_submit(cert_id: int, request: Request, session: Session = Depends(get_session)):
+    cert = session.get(Certificate, cert_id)
+    form = await request.form()
+    fields = _parse_cert_edit_form(form)
+
+    cert.heat_number = fields["heat_number"]
+    cert.alloy_code_claimed = fields["alloy_code"]
+    cert.standard_claimed = fields["standard"]
+    cert.part_number = fields["part_number"]
+
+    extracted = dict(cert.extracted_data)
+    extracted["heat_number"] = fields["heat_number"]
+    extracted["alloy_code"] = fields["alloy_code"]
+    extracted["standard"] = fields["standard"]
+    extracted["part_number"] = fields["part_number"]
+    extracted["chemistry"] = fields["chemistry"]
+    extracted["mechanical"] = fields["mechanical"]
+    cert.extracted_data = extracted
+    cert.extraction_method = "manual"
+    session.add(cert)
+    session.commit()
+
+    spec = find_matching_spec(session, cert.alloy_code_claimed, cert.standard_claimed)
+    verdict, element_results = evaluate_compliance(extracted, spec)
+    result = ComplianceResult(
+        certificate_id=cert.id,
+        spec_id=spec.id if spec else None,
+        overall_verdict=verdict,
+        element_results=element_results,
+    )
+    session.add(result)
+    session.commit()
+    log_action(session, "Certificate", cert.id, "corrected", {"verdict": verdict})
+
+    return RedirectResponse(url=f"/certificates/{cert.id}", status_code=303)
 
 
 @app.get("/certificates/{cert_id}/export.csv")

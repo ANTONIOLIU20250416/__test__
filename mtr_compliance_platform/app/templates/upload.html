@@ -37,6 +37,13 @@
       Only useful if the local parser mis-reads a document; leave unchecked by default.
     </label>
 
+    <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+      <input type="checkbox" name="use_vision" value="true" style="width:auto;">
+      Use Claude AI to read the image/scan directly (bypasses OCR entirely) — spends more API tokens
+      than the option above. Only for PDF/image files where local OCR gets the text wrong or unreadable;
+      has no effect on .txt uploads.
+    </label>
+
     <button type="submit">Analyze Certificate</button>
   </form>
 </div>

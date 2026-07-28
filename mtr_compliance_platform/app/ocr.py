@@ -51,6 +51,17 @@ def ocr_pdf_bytes(data: bytes) -> str:
     return "\n\n".join(pytesseract.image_to_string(p, lang=OCR_LANGUAGES) for p in pages)
 
 
+def file_to_images(filename: str, data: bytes) -> List[Image.Image]:
+    """Renders a file to page images for Claude vision extraction. Returns
+    an empty list for file types with no visual page to send (e.g. .txt)."""
+    lower = filename.lower()
+    if is_image_file(lower):
+        return [Image.open(io.BytesIO(data))]
+    if lower.endswith(".pdf"):
+        return pdf_to_page_images(data)
+    return []
+
+
 def get_document_text(filename: str, data: bytes) -> tuple[str, str]:
     """Returns (text, text_source) where text_source is one of:
     'native_pdf' (text layer read directly, zero cost), 'ocr' (local

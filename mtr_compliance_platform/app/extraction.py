@@ -6,13 +6,15 @@ Two extraction paths:
   2. Heuristic regex fallback — used when no API key is configured, so the
      platform is still usable end-to-end for a demo/offline environment.
 """
+import base64
 import io
-import json
 import os
 import re
 from typing import Optional
 
 from pypdf import PdfReader
+
+MAX_VISION_PAGES = 5  # cap per-request image count to bound cost on multi-page scans
 
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")
 
@@ -93,6 +95,45 @@ def _extract_with_ai(text: str) -> dict:
                 ),
             }
         ],
+    )
+    for block in message.content:
+        if block.type == "tool_use" and block.name == "record_mtr_data":
+            return block.input
+    raise RuntimeError("Model did not return structured tool output")
+
+
+def extract_mtr_data_from_images(images: list) -> dict:
+    """Sends page image(s) straight to Claude's vision — for scans/photos where
+    local OCR text came out wrong or unusable. Requires ANTHROPIC_API_KEY and
+    is opt-in only: this spends more tokens than the text-based AI path since
+    images cost more than the text OCR would have produced."""
+    import anthropic
+
+    client = anthropic.Anthropic()
+    content = []
+    for image in images[:MAX_VISION_PAGES]:
+        buf = io.BytesIO()
+        image.convert("RGB").save(buf, format="PNG")
+        content.append({
+            "type": "image",
+            "source": {"type": "base64", "media_type": "image/png", "data": base64.b64encode(buf.getvalue()).decode()},
+        })
+    content.append({
+        "type": "text",
+        "text": (
+            "Extract structured data from this Material Test Report / mill "
+            "certificate image for a copper alloy or cast/ductile iron plumbing "
+            "component. Chemistry values are weight percent. Convert any "
+            "imperial mechanical units (ksi) to MPa. Only include elements and "
+            "properties actually visible in the document."
+        ),
+    })
+    message = client.messages.create(
+        model=MODEL,
+        max_tokens=1024,
+        tools=[EXTRACTION_TOOL],
+        tool_choice={"type": "tool", "name": "record_mtr_data"},
+        messages=[{"role": "user", "content": content}],
     )
     for block in message.content:
         if block.type == "tool_use" and block.name == "record_mtr_data":

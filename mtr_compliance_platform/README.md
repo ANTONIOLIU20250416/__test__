@@ -24,11 +24,18 @@ real QA/purchasing decisions.
    See **Local OCR pipeline** below.
 3. **Structure the text into fields.** By default this is a **free,
    regex-based local parser** (heat number, alloy code, standard, chemistry,
-   mechanical properties) — zero tokens. AI-assisted parsing (Claude) is
-   available as an **opt-in checkbox** on the upload form for the rare
-   document the local parser can't read; it only ever sends the already-OCR'd
-   *text* (a few hundred tokens), never the image, so even the opt-in path is
-   far cheaper than image/vision-based extraction.
+   mechanical properties) — zero tokens. Two opt-in checkboxes on the upload
+   form spend API tokens when the free parser isn't enough:
+   - **"Use AI-assisted parsing"** — sends the already-OCR'd *text* to Claude
+     (a few hundred tokens) instead of the regex parser.
+   - **"Use Claude AI to read the image/scan directly"** — bypasses OCR
+     entirely and sends the page image(s) to Claude's vision, for scans where
+     Tesseract's OCR text came out wrong or unreadable. Costs more tokens
+     than the text-based option since images cost more than the text they'd
+     produce, so it's the last-resort option, not the default.
+   Either way, if the extraction still comes out wrong, **every certificate's
+   "Edit values" page** lets you type in/correct the chemistry and mechanical
+   values by hand (free) and immediately re-runs the compliance check.
 4. **Compliance engine** matches the extracted alloy/standard against a spec
    library (chemistry + mechanical limits) and produces a per-element
    PASS / WARNING (within 5% of a limit) / FAIL / INFO verdict, plus an
@@ -65,6 +72,16 @@ apt-get install tesseract-ocr tesseract-ocr-chi-tra tesseract-ocr-chi-sim tesser
 ```
 
 (Add `tesseract-ocr-jpn` too if you also receive Japanese-language certs.)
+
+**When OCR gets it wrong**, there are two ways to recover, in order of cost:
+1. Tick **"Use AI-assisted parsing"** on upload — sends the OCR'd text (not
+   the image) to Claude, cheap but still limited by whatever OCR produced.
+2. Tick **"Use Claude AI to read the image/scan directly"** — skips OCR
+   entirely and sends the page image(s) straight to Claude's vision. Costs
+   more tokens (images cost more than text) but can read scans OCR can't.
+3. Or skip AI entirely and use the certificate's **"Edit values"** page to
+   type in/correct the chemistry and mechanical values by hand — free, and
+   immediately re-runs the compliance check with the corrected numbers.
 
 ## Spec library (seeded)
 
@@ -134,8 +151,9 @@ app/
   Always spot-check `extracted_data` against the original document.
 - **The local parser is regex-based**, so it expects roughly
   label-then-number patterns (e.g. "Cu 60.5", "Tensile Strength 58 ksi").
-  Certs with unusual layouts may need the opt-in AI-assisted parsing
-  checkbox, or a rule tweak in `extraction.py`.
+  Certs with unusual layouts may need the opt-in AI text-parsing or
+  vision checkboxes, a rule tweak in `extraction.py`, or manual correction
+  via the certificate's "Edit values" page.
 - **Spec library ships with a small demo set**, but the `/specs` page supports
   add, edit, and delete (up to 12 chemistry elements + tensile/yield/
   elongation/hardness limits) — no code editing needed. Editing a seeded
