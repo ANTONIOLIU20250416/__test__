@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Environmental Certificates{% endblock %}
+{% block content %}
+<h1>Environmental &amp; Regulatory Certificates</h1>
+<p class="subtitle">Tracks supplier declarations such as RoHS, REACH, California Prop 65, Conflict Minerals, DZR.</p>
+
+<div class="card">
+  <h2>Add Certificate</h2>
+  <form method="post" action="/env-certificates">
+    <label>Supplier</label>
+    <select name="supplier_id" required>
+      {% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+    </select>
+    <label>Certificate type</label>
+    <select name="cert_type">
+      <option>RoHS</option>
+      <option>REACH</option>
+      <option>Prop 65</option>
+      <option>Conflict Minerals</option>
+      <option>DZR</option>
+      <option>Other</option>
+    </select>
+    <label>Reference No. (optional)</label>
+    <input type="text" name="reference_no">
+    <label>Issue Date</label>
+    <input type="date" name="issue_date">
+    <label>Expiry Date</label>
+    <input type="date" name="expiry_date">
+    <label>Notes</label>
+    <textarea name="notes" rows="2"></textarea>
+    <button type="submit">Add Certificate</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Certificates on File</h2>
+  {% if rows %}
+  <table>
+    <tr><th>Supplier</th><th>Type</th><th>Reference</th><th>Issued</th><th>Expiry</th><th>Status</th></tr>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row.supplier.name if row.supplier else "—" }}</td>
+      <td>{{ row.cert.cert_type }}</td>
+      <td>{{ row.cert.reference_no or "—" }}</td>
+      <td>{{ row.cert.issue_date or "—" }}</td>
+      <td>{{ row.cert.expiry_date or "—" }}</td>
+      <td><span class="badge {{ row.status }}">{{ row.status }}</span></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No environmental certificates on file yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

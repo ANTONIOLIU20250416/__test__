@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Edit Values — Certificate #{{ cert.id }}{% endblock %}
+{% block content %}
+<h1>Edit Values — Certificate #{{ cert.id }}</h1>
+<p class="subtitle">
+  Manually enter or correct the values read from this certificate — useful when OCR misreads a
+  scanned/photographed document. Saving re-runs the compliance check immediately.
+</p>
+
+<div class="card">
+  <form method="post" action="/certificates/{{ cert.id }}/edit">
+    <label>Heat number</label>
+    <input type="text" name="heat_number" value="{{ cert.heat_number or '' }}">
+
+    <label>Alloy code</label>
+    <input type="text" name="alloy_code" value="{{ cert.alloy_code_claimed or '' }}" placeholder="e.g. C46400">
+
+    <label>Standard</label>
+    <input type="text" name="standard" value="{{ cert.standard_claimed or '' }}" placeholder="e.g. ASTM B124">
+
+    <label>Part number</label>
+    <input type="text" name="part_number" value="{{ cert.part_number or '' }}">
+
+    <h2 style="margin-top:20px;">Chemistry — measured values (wt%)</h2>
+    <table>
+      <tr><th>Element</th><th>Value %</th></tr>
+      {% for row in el_rows %}
+      <tr>
+        <td><input type="text" name="el{{ loop.index }}_name" value="{{ row.name }}" placeholder="e.g. Cu" style="width:80px;"></td>
+        <td><input type="number" step="0.01" name="el{{ loop.index }}_value" value="{{ row.value }}" style="width:90px;"></td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <h2 style="margin-top:20px;">Mechanical — measured values</h2>
+    <label>Tensile strength (MPa)</label>
+    <input type="number" step="0.1" name="tensile_value" value="{{ mech.tensile_value }}">
+
+    <label>Yield strength (MPa)</label>
+    <input type="number" step="0.1" name="yield_value" value="{{ mech.yield_value }}">
+
+    <label>Elongation (%)</label>
+    <input type="number" step="0.1" name="elongation_value" value="{{ mech.elongation_value }}">
+
+    <label>Hardness (HB)</label>
+    <input type="number" step="0.1" name="hardness_value" value="{{ mech.hardness_value }}">
+
+    <button type="submit">Save and Re-check Compliance</button>
+    <a class="btn secondary" href="/certificates/{{ cert.id }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

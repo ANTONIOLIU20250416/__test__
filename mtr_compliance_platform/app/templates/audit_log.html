@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Audit Log{% endblock %}
+{% block content %}
+<h1>Audit Log</h1>
+<p class="subtitle">Immutable, timestamped record of every extraction, compliance check, and export — for audit readiness.</p>
+<div class="card">
+  {% if entries %}
+  <table>
+    <tr><th>Time</th><th>Entity</th><th>Action</th><th>Actor</th><th>Details</th></tr>
+    {% for e in entries %}
+    <tr>
+      <td>{{ e.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+      <td>{{ e.entity_type }} #{{ e.entity_id }}</td>
+      <td>{{ e.action }}</td>
+      <td>{{ e.actor }}</td>
+      <td>{{ e.details }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No activity yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

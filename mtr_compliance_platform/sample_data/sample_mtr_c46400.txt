@@ -1,0 +1,29 @@
+MILL TEST REPORT / CERTIFICATE OF CONFORMANCE
+
+Supplier: Guangdong Brass Foundry Co.
+Customer: Legend Valve
+Part No: LV-4021-ROD
+PO No: PO-2026-0731
+Heat No: H26-08841
+Alloy: C46400 (Naval Brass, Uninhibited)
+Standard: ASTM B124
+Product Form: Extruded Rod, Temper M20
+Diameter: 25.4 mm
+
+CHEMICAL COMPOSITION (Wt. %)
+Cu   60.10
+Sn   0.72
+Pb   0.15
+Fe   0.06
+Zn   Remainder
+
+MECHANICAL PROPERTIES
+Tensile Strength   58.2 ksi
+Yield Strength      26.4 ksi
+Elongation          35 %
+
+We certify that the material described above has been manufactured, sampled,
+tested and inspected in accordance with the requirements of ASTM B124 and
+found to comply with the applicable requirements.
+
+Quality Manager: __________________  Date: 2026-07-10

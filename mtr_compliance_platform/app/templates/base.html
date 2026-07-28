@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}MTR Compliance Platform{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">MTR Compliance Platform</a>
+    <nav class="tabs">
+      <a href="/">Dashboard</a>
+      <a href="/upload">Upload MTR</a>
+      <a href="/certificates">Certificates</a>
+      <a href="/suppliers">Suppliers</a>
+      <a href="/specs">Spec Library</a>
+      <a href="/env-certificates">Env. Certificates</a>
+      <a href="/audit-log">Audit Log</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

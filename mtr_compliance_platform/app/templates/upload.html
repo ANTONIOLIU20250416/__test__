@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Upload MTR{% endblock %}
+{% block content %}
+<h1>Upload Material Test Report</h1>
+<p class="subtitle">Accepts a native PDF, a Word .docx, a scanned/photographed PDF or image (JPG/PNG/TIFF), or a .txt copy. Scanned documents are read with local OCR (Tesseract, eng+chi_tra+chi_sim+vie) — no API tokens used unless you opt in below.</p>
+
+<div class="disclaimer">Spec library values are demo/representative — verify against the current official standard before real QA decisions.</div>
+
+<div class="card">
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post" action="/upload" enctype="multipart/form-data">
+    <label>MTR file (.pdf, .docx, .jpg, .png, .tiff, or .txt)</label>
+    <input type="file" name="file" required>
+
+    <label>Supplier (optional — leave both fields below blank to try auto-detecting it from the document text)</label>
+    <select name="supplier_id">
+      <option value="">— select an existing supplier —</option>
+      {% for s in suppliers %}
+      <option value="{{ s.id }}">{{ s.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Or type a new supplier name (creates it automatically)</label>
+    <input type="text" name="new_supplier_name" placeholder="e.g. Xiamen Brass Fittings Co.">
+    <p class="muted" style="margin-top:4px;">
+      Fill in at most one of the two fields above. Leave both blank and the system will try to match an
+      <em>existing</em> supplier's name against the document's text — this only works if the certificate
+      actually names the supplier somewhere (many templates only show the buyer's letterhead, not the
+      supplier's name, in which case auto-detect can't find one and you'll need to pick or type it).
+      Manage/edit existing suppliers on the <a href="/suppliers">Suppliers</a> page.
+    </p>
+
+    <label>Part Number (optional)</label>
+    <input type="text" name="part_number" placeholder="e.g. LV-4021">
+
+    <label>PO Reference (optional)</label>
+    <input type="text" name="po_reference" placeholder="e.g. PO-2026-0731">
+
+    <label>Alloy code override (optional — use if the cert's claim should be forced/corrected)</label>
+    <input type="text" name="alloy_override" placeholder="e.g. C46400">
+
+    <label>Standard override (optional)</label>
+    <input type="text" name="standard_override" placeholder="e.g. ASTM B124">
+
+    <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+      <input type="checkbox" name="use_ai" value="true" style="width:auto;">
+      Use AI-assisted parsing (Claude) instead of the local rule-based parser — spends API tokens.
+      Only useful if the local parser mis-reads a document; leave unchecked by default.
+    </label>
+
+    <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+      <input type="checkbox" name="use_vision" value="true" style="width:auto;">
+      Use Claude AI to read the image/scan directly (bypasses OCR entirely) — spends more API tokens
+      than the option above. Only for PDF/image files where local OCR gets the text wrong or unreadable;
+      has no effect on .txt uploads.
+    </label>
+
+    <button type="submit">Analyze Certificate</button>
+  </form>
+</div>
+{% endblock %}
