@@ -68,8 +68,7 @@ def dashboard(request: Request, session: Session = Depends(get_session)):
     env_certs = session.exec(select(EnvCertificate)).all()
     expiring = [e for e in env_certs if env_cert_status(e.expiry_date) != "VALID"]
 
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "dashboard.html", {
         "verdict_counts": verdict_counts,
         "total_certs": len(certs),
         "risk_suppliers": risk_suppliers[:10],
@@ -81,7 +80,7 @@ def dashboard(request: Request, session: Session = Depends(get_session)):
 @app.get("/upload", response_class=HTMLResponse)
 def upload_form(request: Request, session: Session = Depends(get_session)):
     suppliers = session.exec(select(Supplier)).all()
-    return templates.TemplateResponse("upload.html", {"request": request, "suppliers": suppliers, "error": None})
+    return templates.TemplateResponse(request, "upload.html", {"suppliers": suppliers, "error": None})
 
 
 @app.post("/upload")
@@ -101,8 +100,8 @@ def upload_submit(
 
     if not text.strip():
         suppliers = session.exec(select(Supplier)).all()
-        return templates.TemplateResponse("upload.html", {
-            "request": request, "suppliers": suppliers,
+        return templates.TemplateResponse(request, "upload.html", {
+            "suppliers": suppliers,
             "error": "No text could be read from this file, even after local OCR — it may be blank, corrupted, or too low-resolution to recognize.",
         })
 
@@ -155,7 +154,7 @@ def certificates_list(request: Request, session: Session = Depends(get_session))
         if prev is None or r.checked_at > prev.checked_at:
             latest_result[r.certificate_id] = r
     rows = [{"cert": c, "supplier": suppliers.get(c.supplier_id), "result": latest_result.get(c.id)} for c in certs]
-    return templates.TemplateResponse("certificates.html", {"request": request, "rows": rows})
+    return templates.TemplateResponse(request, "certificates.html", {"rows": rows})
 
 
 @app.get("/certificates/{cert_id}", response_class=HTMLResponse)
@@ -167,8 +166,8 @@ def certificate_detail(cert_id: int, request: Request, session: Session = Depend
     result = results[0] if results else None
     spec = session.get(MaterialSpec, result.spec_id) if result and result.spec_id else None
     supplier = session.get(Supplier, cert.supplier_id) if cert.supplier_id else None
-    return templates.TemplateResponse("certificate_detail.html", {
-        "request": request, "cert": cert, "result": result, "spec": spec, "supplier": supplier,
+    return templates.TemplateResponse(request, "certificate_detail.html", {
+        "cert": cert, "result": result, "spec": spec, "supplier": supplier,
     })
 
 
@@ -194,7 +193,7 @@ def certificate_export(cert_id: int, session: Session = Depends(get_session)):
 @app.get("/specs", response_class=HTMLResponse)
 def specs_list(request: Request, session: Session = Depends(get_session)):
     specs = session.exec(select(MaterialSpec).order_by(MaterialSpec.category, MaterialSpec.alloy_code)).all()
-    return templates.TemplateResponse("specs.html", {"request": request, "specs": specs})
+    return templates.TemplateResponse(request, "specs.html", {"specs": specs})
 
 
 @app.get("/env-certificates", response_class=HTMLResponse)
@@ -203,7 +202,7 @@ def env_certs_list(request: Request, session: Session = Depends(get_session)):
     suppliers = {s.id: s for s in session.exec(select(Supplier)).all()}
     all_suppliers = session.exec(select(Supplier)).all()
     rows = [{"cert": c, "supplier": suppliers.get(c.supplier_id), "status": env_cert_status(c.expiry_date)} for c in certs]
-    return templates.TemplateResponse("env_certs.html", {"request": request, "rows": rows, "suppliers": all_suppliers})
+    return templates.TemplateResponse(request, "env_certs.html", {"rows": rows, "suppliers": all_suppliers})
 
 
 @app.post("/env-certificates")
@@ -235,4 +234,4 @@ def env_certs_add(
 def audit_log_view(request: Request, session: Session = Depends(get_session)):
     from .models import AuditLog
     entries = session.exec(select(AuditLog).order_by(AuditLog.timestamp.desc())).all()
-    return templates.TemplateResponse("audit_log.html", {"request": request, "entries": entries})
+    return templates.TemplateResponse(request, "audit_log.html", {"entries": entries})
