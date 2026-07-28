@@ -137,7 +137,7 @@ app/
   Certs with unusual layouts may need the opt-in AI-assisted parsing
   checkbox, or a rule tweak in `extraction.py`.
 - **Spec library ships with a small demo set**, but the `/specs` page supports
-  add, edit, and delete (up to 8 chemistry elements + tensile/yield/
+  add, edit, and delete (up to 12 chemistry elements + tensile/yield/
   elongation/hardness limits) — no code editing needed. Editing a seeded
   "Demo" spec flips it to "Custom" (it won't be silently reset later).
   Deleting a spec that a past certificate was checked against leaves that

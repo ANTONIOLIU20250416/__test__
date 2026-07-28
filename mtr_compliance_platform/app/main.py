@@ -206,7 +206,7 @@ MECHANICAL_FORM_FIELDS = [
 
 def _parse_spec_form(form) -> dict:
     chemistry_limits = {}
-    for i in range(1, 9):
+    for i in range(1, 13):
         name = (form.get(f"el{i}_name") or "").strip()
         if not name:
             continue
@@ -240,10 +240,10 @@ def _parse_spec_form(form) -> dict:
 
 
 def _spec_form_rows(spec: Optional[MaterialSpec] = None) -> list:
-    """Builds the 8 fixed element-row values (for pre-filling the edit form)."""
+    """Builds the 12 fixed element-row values (for pre-filling the edit form)."""
     rows = []
     items = list(spec.chemistry_limits.items()) if spec else []
-    for i in range(8):
+    for i in range(12):
         if i < len(items):
             name, limit = items[i]
             rows.append({
