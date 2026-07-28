@@ -17,7 +17,7 @@ from .database import engine, get_session, init_db
 from .extraction import extract_mtr_data, extract_mtr_data_from_images
 from .models import Certificate, ComplianceResult, EnvCertificate, MaterialSpec, Supplier, Verdict
 from .ocr import file_to_images, get_document_text
-from .seed_data import seed_if_empty
+from .seed_data import sync_reference_data
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -30,7 +30,7 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 def on_startup():
     init_db()
     with Session(engine) as session:
-        seed_if_empty(session)
+        sync_reference_data(session)
 
 
 @app.get("/", response_class=HTMLResponse)

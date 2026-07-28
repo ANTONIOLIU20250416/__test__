@@ -89,17 +89,41 @@ apt-get install tesseract-ocr tesseract-ocr-chi-tra tesseract-ocr-chi-sim tesser
 
 ## Spec library (seeded)
 
-Copper alloys: `C46400` / `C46500` (naval brass, ASTM B124), `C36000`
-(free-cutting brass, ASTM B16), and their JIS H3250 equivalents `C4640` /
-`C3604`. Iron: ductile iron `65-45-12` (ASTM A536), `FCD450` (JIS G5502),
-malleable iron `32510` (ASTM A47).
+Two batches of seed specs, both created automatically on first run and synced
+into any existing database on every subsequent startup (see `sync_reference_data`
+below):
 
-**⚠️ These limit values are representative figures compiled for this demo —
-not a certified copy of the standard.** Before using this for real decisions,
-replace every entry in `app/seed_data.py` with values verified against the
-current official ASTM/JIS/CNS text. The `notes` field on every spec repeats
-this disclaimer, and the UI shows it on the spec library and certificate
-detail pages.
+- **`SPECS`** (8 grades, marked "Demo" in the UI) — a small hand-compiled set:
+  `C46400` / `C46500` (naval brass, ASTM B124), `C36000` (free-cutting brass,
+  ASTM B16), JIS H3250 equivalents `C4640` / `C3604`, and irons `65-45-12`
+  (ASTM A536), `FCD450` (JIS G5502), `32510` (ASTM A47).
+- **`IMPORTED_SPECS`** (34 grades, marked "Custom") — imported from a
+  user-provided `MTR_Analyzer.xlsm` (Standards_DB tab): copper alloys
+  (C46400/B21, C46500/B21, C36300, C35200, C37700, C27450, C6806, C69300,
+  C12200, CW617N, CW602N, HPb59-1, C83600, C84400, C85700, C87850, C87860,
+  C89833/36/44, CAC203, CAC406, C23000), stainless (SS304/304L/316/316L, CF8,
+  CF8M), carbon steel (A105, SAE 1008, ASTM A53 Gr.A, Q235), and grey iron
+  (FC200) — covering ASTM, JIS, EN, GB/T, and SAE.
+
+**⚠️ These limit values are for quick reference only — not a certified copy
+of any standard.** Verify every entry against the current official
+ASTM/JIS/EN/GB/T/SAE text before using this for real QA/purchasing
+decisions. The `notes` field on every spec repeats this, and the UI shows
+it on the spec library and certificate detail pages.
+
+**Known data-quality notes on the imported set** (flag these if you're the
+one who supplied `Standards_DB`):
+- `Q235`'s carbon max was entered in the source as `22` (%) — physically
+  impossible for steel — and has been corrected to `0.22` here, with the
+  correction noted on that spec. Verify against your source.
+- `C27450` had no standard cited in the source; stored as `standard = "N/A"`.
+- `C36000`/`ASTM B16` already existed in the demo set with equivalent
+  chemistry plus tensile/elongation limits the source didn't include, so the
+  import skipped creating a duplicate and kept the existing (fuller) entry.
+- A few rows encode constraints this app's per-element min/max model can't
+  represent structurally (e.g. ASTM A53 Gr.A's "Cu+Ni+Cr+Mo+V ≤ 1.00" combined
+  limit) — these are preserved in the spec's `notes` field but not
+  automatically checked.
 
 ## Setup & run
 
@@ -141,7 +165,7 @@ app/
   extraction.py    OCR'd/native text -> structured fields (free regex parser
                    by default; opt-in Claude tool-use path)
   compliance.py    Spec matching + per-element PASS/WARNING/FAIL/INFO logic
-  seed_data.py     Demo spec library + demo suppliers
+  seed_data.py     Demo + imported spec library, demo suppliers, idempotent sync
   audit.py         Audit log writer + env-cert expiry status
   main.py          FastAPI routes
   templates/       Jinja2 pages (dashboard, upload, certificates, specs, ...)
