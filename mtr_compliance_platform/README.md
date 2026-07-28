@@ -1,5 +1,8 @@
 # MTR Compliance Platform (prototype)
 
+> Non-technical / first-time setup: see [使用說明.md](使用說明.md) (Traditional Chinese) —
+> double-click `START_HERE.bat` (Windows) or `START_HERE.command` (Mac) after Python is installed.
+
 An AI-assisted compliance management platform, in the spirit of Certivo/MTR.AI,
 scoped for **plumbing-industry copper alloys and cast iron**: Material Test
 Report (MTR) ingestion, chemistry/mechanical compliance checking against ASTM
