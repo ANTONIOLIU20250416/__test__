@@ -48,6 +48,10 @@ real QA/purchasing decisions.
 7. **Audit log** — every upload, compliance check, and export is timestamped,
    including which text source and parser were used, for audit readiness and
    token-spend transparency. Compliance results are exportable as CSV.
+8. **Supplier management** — the `/suppliers` page lists, adds, edits, and
+   deletes suppliers. The upload form also lets you type a brand-new
+   supplier name directly instead of picking from the dropdown; it's
+   created automatically on submit.
 
 ## Local OCR pipeline (no per-page API cost)
 

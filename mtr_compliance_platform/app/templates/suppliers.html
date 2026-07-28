@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Suppliers{% endblock %}
+{% block content %}
+<h1>Suppliers</h1>
+<p class="subtitle">Manage the suppliers available on the Upload MTR and Environmental Certificates pages.</p>
+
+<div class="card">
+  <h2>Add a Supplier</h2>
+  <form method="post" action="/suppliers">
+    <label>Name</label>
+    <input type="text" name="name" placeholder="e.g. Ningbo Ductile Iron Ltd." required>
+
+    <label>Country (optional)</label>
+    <input type="text" name="country" placeholder="e.g. China">
+
+    <label>Contact (optional)</label>
+    <input type="text" name="contact" placeholder="e.g. qa@supplier.com">
+
+    <button type="submit">Add Supplier</button>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <tr><th>Name</th><th>Country</th><th>Contact</th><th></th></tr>
+    {% for s in suppliers %}
+    <tr>
+      <td>{{ s.name }}</td>
+      <td>{{ s.country or "—" }}</td>
+      <td>{{ s.contact or "—" }}</td>
+      <td><a class="row-link" href="/suppliers/{{ s.id }}/edit">Edit</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">No suppliers yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

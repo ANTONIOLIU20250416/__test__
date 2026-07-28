@@ -88,7 +88,8 @@ def upload_form(request: Request, session: Session = Depends(get_session)):
 def upload_submit(
     request: Request,
     file: UploadFile = File(...),
-    supplier_id: int = Form(...),
+    supplier_id: str = Form(""),
+    new_supplier_name: str = Form(""),
     part_number: str = Form(""),
     po_reference: str = Form(""),
     alloy_override: str = Form(""),
@@ -97,6 +98,22 @@ def upload_submit(
     use_vision: bool = Form(False),
     session: Session = Depends(get_session),
 ):
+    if new_supplier_name.strip():
+        supplier = Supplier(name=new_supplier_name.strip())
+        session.add(supplier)
+        session.commit()
+        session.refresh(supplier)
+        resolved_supplier_id = supplier.id
+        log_action(session, "Supplier", supplier.id, "created", {"name": supplier.name, "via": "upload_inline"})
+    elif supplier_id.strip():
+        resolved_supplier_id = int(supplier_id)
+    else:
+        suppliers = session.exec(select(Supplier)).all()
+        return templates.TemplateResponse(request, "upload.html", {
+            "suppliers": suppliers,
+            "error": "Please select an existing supplier, or type a new supplier name.",
+        })
+
     raw = file.file.read()
     text, text_source = get_document_text(file.filename, raw)
 
@@ -125,7 +142,7 @@ def upload_submit(
     standard = standard_override.strip() or extracted.get("standard")
 
     cert = Certificate(
-        supplier_id=supplier_id,
+        supplier_id=resolved_supplier_id,
         file_name=file.filename,
         part_number=part_number or None,
         po_reference=po_reference or None,
@@ -434,6 +451,61 @@ def spec_delete(spec_id: int, session: Session = Depends(get_session)):
         session.delete(spec)
         session.commit()
     return RedirectResponse(url="/specs", status_code=303)
+
+
+@app.get("/suppliers", response_class=HTMLResponse)
+def suppliers_list(request: Request, session: Session = Depends(get_session)):
+    suppliers = session.exec(select(Supplier).order_by(Supplier.name)).all()
+    return templates.TemplateResponse(request, "suppliers.html", {"suppliers": suppliers})
+
+
+@app.post("/suppliers")
+def suppliers_add(
+    name: str = Form(...),
+    country: str = Form(""),
+    contact: str = Form(""),
+    session: Session = Depends(get_session),
+):
+    supplier = Supplier(name=name.strip(), country=country.strip() or None, contact=contact.strip() or None)
+    session.add(supplier)
+    session.commit()
+    session.refresh(supplier)
+    log_action(session, "Supplier", supplier.id, "created", {"name": supplier.name})
+    return RedirectResponse(url="/suppliers", status_code=303)
+
+
+@app.get("/suppliers/{supplier_id}/edit", response_class=HTMLResponse)
+def supplier_edit_form(supplier_id: int, request: Request, session: Session = Depends(get_session)):
+    supplier = session.get(Supplier, supplier_id)
+    return templates.TemplateResponse(request, "supplier_edit.html", {"supplier": supplier})
+
+
+@app.post("/suppliers/{supplier_id}/edit")
+def supplier_edit_submit(
+    supplier_id: int,
+    name: str = Form(...),
+    country: str = Form(""),
+    contact: str = Form(""),
+    session: Session = Depends(get_session),
+):
+    supplier = session.get(Supplier, supplier_id)
+    supplier.name = name.strip()
+    supplier.country = country.strip() or None
+    supplier.contact = contact.strip() or None
+    session.add(supplier)
+    session.commit()
+    log_action(session, "Supplier", supplier.id, "updated", {"name": supplier.name})
+    return RedirectResponse(url="/suppliers", status_code=303)
+
+
+@app.post("/suppliers/{supplier_id}/delete")
+def supplier_delete(supplier_id: int, session: Session = Depends(get_session)):
+    supplier = session.get(Supplier, supplier_id)
+    if supplier:
+        log_action(session, "Supplier", supplier.id, "deleted", {"name": supplier.name})
+        session.delete(supplier)
+        session.commit()
+    return RedirectResponse(url="/suppliers", status_code=303)
 
 
 @app.get("/env-certificates", response_class=HTMLResponse)

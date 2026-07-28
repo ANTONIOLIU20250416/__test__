@@ -13,11 +13,16 @@
     <input type="file" name="file" required>
 
     <label>Supplier</label>
-    <select name="supplier_id" required>
+    <select name="supplier_id">
+      <option value="">— select an existing supplier —</option>
       {% for s in suppliers %}
       <option value="{{ s.id }}">{{ s.name }}</option>
       {% endfor %}
     </select>
+
+    <label>Or type a new supplier name (creates it automatically)</label>
+    <input type="text" name="new_supplier_name" placeholder="e.g. Xiamen Brass Fittings Co.">
+    <p class="muted" style="margin-top:4px;">Fill in either the dropdown above or this field, not both. Manage/edit existing suppliers on the <a href="/suppliers">Suppliers</a> page.</p>
 
     <label>Part Number (optional)</label>
     <input type="text" name="part_number" placeholder="e.g. LV-4021">

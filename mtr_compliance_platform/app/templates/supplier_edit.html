@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Edit Supplier — {{ supplier.name }}{% endblock %}
+{% block content %}
+<h1>Edit Supplier</h1>
+
+<div class="card">
+  <form method="post" action="/suppliers/{{ supplier.id }}/edit">
+    <label>Name</label>
+    <input type="text" name="name" value="{{ supplier.name }}" required>
+
+    <label>Country (optional)</label>
+    <input type="text" name="country" value="{{ supplier.country or '' }}">
+
+    <label>Contact (optional)</label>
+    <input type="text" name="contact" value="{{ supplier.contact or '' }}">
+
+    <button type="submit">Save Changes</button>
+    <a class="btn secondary" href="/suppliers">Cancel</a>
+  </form>
+</div>
+
+<div class="card">
+  <h2 style="color:#c0392b;">Delete this supplier</h2>
+  <p class="muted">Certificates and environmental certificates already on file for this supplier keep their records, but will show the supplier as "—" afterward.</p>
+  <form method="post" action="/suppliers/{{ supplier.id }}/delete" onsubmit="return confirm('Delete supplier {{ supplier.name }}? This cannot be undone.');">
+    <button type="submit" style="background:#c0392b;">Delete Supplier</button>
+  </form>
+</div>
+{% endblock %}
