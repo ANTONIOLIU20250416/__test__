@@ -196,10 +196,15 @@ def specs_list(request: Request, session: Session = Depends(get_session)):
     return templates.TemplateResponse(request, "specs.html", {"specs": specs})
 
 
-@app.post("/specs")
-async def specs_add(request: Request, session: Session = Depends(get_session)):
-    form = await request.form()
+MECHANICAL_FORM_FIELDS = [
+    ("tensile_strength_mpa", "tensile_min", "min"),
+    ("yield_strength_mpa", "yield_min", "min"),
+    ("elongation_pct", "elongation_min", "min"),
+    ("hardness_hb", "hardness_max", "max"),
+]
 
+
+def _parse_spec_form(form) -> dict:
     chemistry_limits = {}
     for i in range(1, 9):
         name = (form.get(f"el{i}_name") or "").strip()
@@ -218,17 +223,12 @@ async def specs_add(request: Request, session: Session = Depends(get_session)):
             chemistry_limits[name] = limit
 
     mechanical_limits = {}
-    for key, form_key, bound in [
-        ("tensile_strength_mpa", "tensile_min", "min"),
-        ("yield_strength_mpa", "yield_min", "min"),
-        ("elongation_pct", "elongation_min", "min"),
-        ("hardness_hb", "hardness_max", "max"),
-    ]:
+    for key, form_key, bound in MECHANICAL_FORM_FIELDS:
         value = form.get(form_key)
         if value:
             mechanical_limits[key] = {bound: float(value)}
 
-    spec = MaterialSpec(
+    return dict(
         alloy_code=(form.get("alloy_code") or "").strip().upper(),
         alloy_name=(form.get("alloy_name") or "").strip(),
         standard=(form.get("standard") or "").strip(),
@@ -236,12 +236,85 @@ async def specs_add(request: Request, session: Session = Depends(get_session)):
         chemistry_limits=chemistry_limits,
         mechanical_limits=mechanical_limits,
         notes=(form.get("notes") or "").strip() or None,
-        is_demo_data=False,
     )
+
+
+def _spec_form_rows(spec: Optional[MaterialSpec] = None) -> list:
+    """Builds the 8 fixed element-row values (for pre-filling the edit form)."""
+    rows = []
+    items = list(spec.chemistry_limits.items()) if spec else []
+    for i in range(8):
+        if i < len(items):
+            name, limit = items[i]
+            rows.append({
+                "name": name,
+                "min": limit.get("min", ""),
+                "max": limit.get("max", ""),
+                "remainder": bool(limit.get("remainder")),
+            })
+        else:
+            rows.append({"name": "", "min": "", "max": "", "remainder": False})
+    return rows
+
+
+def _spec_mechanical_values(spec: Optional[MaterialSpec] = None) -> dict:
+    values = {"tensile_min": "", "yield_min": "", "elongation_min": "", "hardness_max": ""}
+    if spec:
+        m = spec.mechanical_limits
+        if "tensile_strength_mpa" in m:
+            values["tensile_min"] = m["tensile_strength_mpa"].get("min", "")
+        if "yield_strength_mpa" in m:
+            values["yield_min"] = m["yield_strength_mpa"].get("min", "")
+        if "elongation_pct" in m:
+            values["elongation_min"] = m["elongation_pct"].get("min", "")
+        if "hardness_hb" in m:
+            values["hardness_max"] = m["hardness_hb"].get("max", "")
+    return values
+
+
+@app.post("/specs")
+async def specs_add(request: Request, session: Session = Depends(get_session)):
+    form = await request.form()
+    fields = _parse_spec_form(form)
+    spec = MaterialSpec(**fields, is_demo_data=False)
     session.add(spec)
     session.commit()
     session.refresh(spec)
     log_action(session, "MaterialSpec", spec.id, "created", {"alloy_code": spec.alloy_code, "standard": spec.standard})
+    return RedirectResponse(url="/specs", status_code=303)
+
+
+@app.get("/specs/{spec_id}/edit", response_class=HTMLResponse)
+def spec_edit_form(spec_id: int, request: Request, session: Session = Depends(get_session)):
+    spec = session.get(MaterialSpec, spec_id)
+    return templates.TemplateResponse(request, "spec_edit.html", {
+        "spec": spec,
+        "el_rows": _spec_form_rows(spec),
+        "mech": _spec_mechanical_values(spec),
+    })
+
+
+@app.post("/specs/{spec_id}/edit")
+async def spec_edit_submit(spec_id: int, request: Request, session: Session = Depends(get_session)):
+    spec = session.get(MaterialSpec, spec_id)
+    form = await request.form()
+    fields = _parse_spec_form(form)
+    for key, value in fields.items():
+        setattr(spec, key, value)
+    spec.is_demo_data = False
+    session.add(spec)
+    session.commit()
+    log_action(session, "MaterialSpec", spec.id, "updated", {"alloy_code": spec.alloy_code, "standard": spec.standard})
+    return RedirectResponse(url="/specs", status_code=303)
+
+
+@app.post("/specs/{spec_id}/delete")
+def spec_delete(spec_id: int, session: Session = Depends(get_session)):
+    spec = session.get(MaterialSpec, spec_id)
+    if spec:
+        log_action(session, "MaterialSpec", spec.id, "deleted", {"alloy_code": spec.alloy_code, "standard": spec.standard})
+        session.delete(spec)
+        session.commit()
     return RedirectResponse(url="/specs", status_code=303)
 
 

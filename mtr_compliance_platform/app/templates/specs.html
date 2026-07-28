@@ -58,7 +58,7 @@
 
 <div class="card">
   <table>
-    <tr><th>Alloy</th><th>Name</th><th>Standard</th><th>Category</th><th>Source</th><th>Chemistry limits (wt%)</th><th>Mechanical limits</th></tr>
+    <tr><th>Alloy</th><th>Name</th><th>Standard</th><th>Category</th><th>Source</th><th>Chemistry limits (wt%)</th><th>Mechanical limits</th><th></th></tr>
     {% for s in specs %}
     <tr>
       <td>{{ s.alloy_code }}</td>
@@ -76,6 +76,7 @@
           {{ p }}: {% if lim.min is defined %}≥{{ lim.min }}{% endif %}{% if lim.max is defined %}{% if lim.min is defined %} / {% endif %}≤{{ lim.max }}{% endif %}<br>
         {% else %}—{% endfor %}
       </td>
+      <td><a class="row-link" href="/specs/{{ s.id }}/edit">Edit</a></td>
     </tr>
     {% endfor %}
   </table>

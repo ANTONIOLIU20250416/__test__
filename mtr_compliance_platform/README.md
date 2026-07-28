@@ -136,11 +136,12 @@ app/
   label-then-number patterns (e.g. "Cu 60.5", "Tensile Strength 58 ksi").
   Certs with unusual layouts may need the opt-in AI-assisted parsing
   checkbox, or a rule tweak in `extraction.py`.
-- **Spec library ships with a small demo set**, but the `/specs` page has an
-  "Add a Material Spec" form to add real grades yourself (up to 8 chemistry
-  elements + tensile/yield/elongation/hardness limits) — no code editing
-  needed. User-added specs are marked "Custom" vs. the seeded "Demo" ones.
-  Editing/deleting an existing spec from the UI isn't built yet.
+- **Spec library ships with a small demo set**, but the `/specs` page supports
+  add, edit, and delete (up to 8 chemistry elements + tensile/yield/
+  elongation/hardness limits) — no code editing needed. Editing a seeded
+  "Demo" spec flips it to "Custom" (it won't be silently reset later).
+  Deleting a spec that a past certificate was checked against leaves that
+  certificate's old result on record but "unmatched" for future checks.
 - **No authentication / multi-tenant separation** — single-user local app.
   Add auth before deploying anywhere shared.
 - **No PO/BOM linking** — certificates aren't yet tied to purchase order

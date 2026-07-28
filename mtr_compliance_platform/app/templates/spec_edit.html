@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Edit Spec — {{ spec.alloy_code }}{% endblock %}
+{% block content %}
+<h1>Edit Spec — {{ spec.alloy_code }}</h1>
+<p class="subtitle">
+  {{ "Custom spec" if not spec.is_demo_data else "Demo seed spec — editing it turns it into a Custom spec that won't be reset." }}
+</p>
+
+<div class="card">
+  <form method="post" action="/specs/{{ spec.id }}/edit">
+    <label>Alloy code</label>
+    <input type="text" name="alloy_code" value="{{ spec.alloy_code }}" required>
+
+    <label>Alloy name</label>
+    <input type="text" name="alloy_name" value="{{ spec.alloy_name }}" required>
+
+    <label>Standard</label>
+    <input type="text" name="standard" value="{{ spec.standard }}" required>
+
+    <label>Category</label>
+    <select name="category">
+      <option value="copper_alloy" {% if spec.category == "copper_alloy" %}selected{% endif %}>Copper alloy</option>
+      <option value="iron" {% if spec.category == "iron" %}selected{% endif %}>Iron</option>
+      <option value="steel" {% if spec.category == "steel" %}selected{% endif %}>Steel</option>
+    </select>
+
+    <h2 style="margin-top:20px;">Chemistry limits (wt%) — optional, leave a row blank to skip it</h2>
+    <table>
+      <tr><th>Element</th><th>Min %</th><th>Max %</th><th>Is remainder (balance)?</th></tr>
+      {% for row in el_rows %}
+      <tr>
+        <td><input type="text" name="el{{ loop.index }}_name" value="{{ row.name }}" placeholder="e.g. Cu" style="width:80px;"></td>
+        <td><input type="number" step="0.01" name="el{{ loop.index }}_min" value="{{ row.min }}" style="width:90px;"></td>
+        <td><input type="number" step="0.01" name="el{{ loop.index }}_max" value="{{ row.max }}" style="width:90px;"></td>
+        <td style="text-align:center;"><input type="checkbox" name="el{{ loop.index }}_remainder" value="true" style="width:auto;" {% if row.remainder %}checked{% endif %}></td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <h2 style="margin-top:20px;">Mechanical limits — optional</h2>
+    <label>Tensile strength min (MPa)</label>
+    <input type="number" step="0.1" name="tensile_min" value="{{ mech.tensile_min }}">
+
+    <label>Yield strength min (MPa)</label>
+    <input type="number" step="0.1" name="yield_min" value="{{ mech.yield_min }}">
+
+    <label>Elongation min (%)</label>
+    <input type="number" step="0.1" name="elongation_min" value="{{ mech.elongation_min }}">
+
+    <label>Hardness max (HB)</label>
+    <input type="number" step="0.1" name="hardness_max" value="{{ mech.hardness_max }}">
+
+    <label>Notes (optional)</label>
+    <textarea name="notes" rows="2">{{ spec.notes or "" }}</textarea>
+
+    <button type="submit">Save Changes</button>
+    <a class="btn secondary" href="/specs">Cancel</a>
+  </form>
+</div>
+
+<div class="card">
+  <h2 style="color:#c0392b;">Delete this spec</h2>
+  <p class="muted">Certificates that were checked against this spec will show as "unmatched" afterward — their existing PASS/FAIL result stays on record, but re-checking a new certificate against this alloy/standard won't be possible until you re-add it.</p>
+  <form method="post" action="/specs/{{ spec.id }}/delete" onsubmit="return confirm('Delete {{ spec.alloy_code }} ({{ spec.standard }})? This cannot be undone.');">
+    <button type="submit" style="background:#c0392b;">Delete Spec</button>
+  </form>
+</div>
+{% endblock %}
