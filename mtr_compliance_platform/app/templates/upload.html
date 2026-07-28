@@ -2,17 +2,17 @@
 {% block title %}Upload MTR{% endblock %}
 {% block content %}
 <h1>Upload Material Test Report</h1>
-<p class="subtitle">Accepts a native PDF, a scanned/photographed PDF or image (JPG/PNG/TIFF), or a .txt copy. Scanned documents are read with local OCR (Tesseract, eng+chi_tra+chi_sim+vie) — no API tokens used unless you opt in below.</p>
+<p class="subtitle">Accepts a native PDF, a Word .docx, a scanned/photographed PDF or image (JPG/PNG/TIFF), or a .txt copy. Scanned documents are read with local OCR (Tesseract, eng+chi_tra+chi_sim+vie) — no API tokens used unless you opt in below.</p>
 
 <div class="disclaimer">Spec library values are demo/representative — verify against the current official standard before real QA decisions.</div>
 
 <div class="card">
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
   <form method="post" action="/upload" enctype="multipart/form-data">
-    <label>MTR file (.pdf, .jpg, .png, .tiff, or .txt)</label>
+    <label>MTR file (.pdf, .docx, .jpg, .png, .tiff, or .txt)</label>
     <input type="file" name="file" required>
 
-    <label>Supplier</label>
+    <label>Supplier (optional — leave both fields below blank to try auto-detecting it from the document text)</label>
     <select name="supplier_id">
       <option value="">— select an existing supplier —</option>
       {% for s in suppliers %}
@@ -22,7 +22,13 @@
 
     <label>Or type a new supplier name (creates it automatically)</label>
     <input type="text" name="new_supplier_name" placeholder="e.g. Xiamen Brass Fittings Co.">
-    <p class="muted" style="margin-top:4px;">Fill in either the dropdown above or this field, not both. Manage/edit existing suppliers on the <a href="/suppliers">Suppliers</a> page.</p>
+    <p class="muted" style="margin-top:4px;">
+      Fill in at most one of the two fields above. Leave both blank and the system will try to match an
+      <em>existing</em> supplier's name against the document's text — this only works if the certificate
+      actually names the supplier somewhere (many templates only show the buyer's letterhead, not the
+      supplier's name, in which case auto-detect can't find one and you'll need to pick or type it).
+      Manage/edit existing suppliers on the <a href="/suppliers">Suppliers</a> page.
+    </p>
 
     <label>Part Number (optional)</label>
     <input type="text" name="part_number" placeholder="e.g. LV-4021">

@@ -98,22 +98,6 @@ def upload_submit(
     use_vision: bool = Form(False),
     session: Session = Depends(get_session),
 ):
-    if new_supplier_name.strip():
-        supplier = Supplier(name=new_supplier_name.strip())
-        session.add(supplier)
-        session.commit()
-        session.refresh(supplier)
-        resolved_supplier_id = supplier.id
-        log_action(session, "Supplier", supplier.id, "created", {"name": supplier.name, "via": "upload_inline"})
-    elif supplier_id.strip():
-        resolved_supplier_id = int(supplier_id)
-    else:
-        suppliers = session.exec(select(Supplier)).all()
-        return templates.TemplateResponse(request, "upload.html", {
-            "suppliers": suppliers,
-            "error": "Please select an existing supplier, or type a new supplier name.",
-        })
-
     raw = file.file.read()
     text, text_source = get_document_text(file.filename, raw)
 
@@ -138,14 +122,43 @@ def upload_submit(
         if vision_error:
             extracted["_vision_error"] = vision_error
 
+    supplier_auto_detected = None
+    if new_supplier_name.strip():
+        supplier = Supplier(name=new_supplier_name.strip())
+        session.add(supplier)
+        session.commit()
+        session.refresh(supplier)
+        resolved_supplier_id = supplier.id
+        log_action(session, "Supplier", supplier.id, "created", {"name": supplier.name, "via": "upload_inline"})
+    elif supplier_id.strip():
+        resolved_supplier_id = int(supplier_id)
+    else:
+        # Best-effort: a certificate's own text sometimes names the supplier
+        # (letterhead, "Manufacturer:" line) even without a dedicated field.
+        # This can only find suppliers already in the system - it can't invent
+        # one for text that never names the supplier at all (common on MTRs
+        # where only the buyer's letterhead appears, as in Legend's template).
+        matches = [s for s in session.exec(select(Supplier)).all() if s.name.lower() in text.lower()]
+        if len(matches) == 1:
+            resolved_supplier_id = matches[0].id
+            supplier_auto_detected = matches[0].name
+        else:
+            suppliers = session.exec(select(Supplier)).all()
+            error = ("Multiple known suppliers were mentioned in this document — please pick the right one."
+                     if matches else
+                     "Could not find a supplier name in this document. Please select an existing supplier, or type a new one.")
+            return templates.TemplateResponse(request, "upload.html", {"suppliers": suppliers, "error": error})
+
     alloy_code = alloy_override.strip() or extracted.get("alloy_code")
     standard = standard_override.strip() or extracted.get("standard")
+    resolved_part_number = part_number.strip() or extracted.get("part_number")
+    resolved_po_reference = po_reference.strip() or extracted.get("po_reference")
 
     cert = Certificate(
         supplier_id=resolved_supplier_id,
         file_name=file.filename,
-        part_number=part_number or None,
-        po_reference=po_reference or None,
+        part_number=resolved_part_number or None,
+        po_reference=resolved_po_reference or None,
         heat_number=extracted.get("heat_number"),
         alloy_code_claimed=alloy_code,
         standard_claimed=standard,
@@ -160,6 +173,7 @@ def upload_submit(
     log_action(session, "Certificate", cert.id, "uploaded", {
         "text_source": text_source, "extraction_method": method,
         "ai_requested": use_ai, "vision_requested": use_vision, "file_name": file.filename,
+        "supplier_auto_detected": supplier_auto_detected,
     })
 
     spec = find_matching_spec(session, alloy_code, standard)

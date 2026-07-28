@@ -15,7 +15,7 @@ import fitz  # PyMuPDF
 import pytesseract
 from PIL import Image
 
-from .extraction import pdf_bytes_to_text
+from .extraction import docx_bytes_to_text, pdf_bytes_to_text
 
 # English + Traditional/Simplified Chinese + Vietnamese — the languages
 # these plumbing-industry supplier certs are most often issued in.
@@ -64,8 +64,9 @@ def file_to_images(filename: str, data: bytes) -> List[Image.Image]:
 
 def get_document_text(filename: str, data: bytes) -> tuple[str, str]:
     """Returns (text, text_source) where text_source is one of:
-    'native_pdf' (text layer read directly, zero cost), 'ocr' (local
-    Tesseract), 'plain_text' (.txt upload)."""
+    'native_pdf' (text layer read directly, zero cost), 'docx' (Word document
+    text/tables, zero cost), 'ocr' (local Tesseract), 'plain_text' (.txt
+    upload)."""
     lower = filename.lower()
     if is_image_file(lower):
         return ocr_image_bytes(data), "ocr"
@@ -74,4 +75,6 @@ def get_document_text(filename: str, data: bytes) -> tuple[str, str]:
         if len(native_text.strip()) >= NATIVE_TEXT_MIN_CHARS:
             return native_text, "native_pdf"
         return ocr_pdf_bytes(data), "ocr"
+    if lower.endswith(".docx"):
+        return docx_bytes_to_text(data), "docx"
     return data.decode("utf-8", errors="ignore"), "plain_text"

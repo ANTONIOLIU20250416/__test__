@@ -7,7 +7,7 @@
   Heat No.: {{ cert.heat_number or "—" }} ·
   Part: {{ cert.part_number or "—" }} ·
   PO: {{ cert.po_reference or "—" }} ·
-  Text source: <strong>{{ {"native_pdf": "native PDF text (free)", "ocr": "local OCR — Tesseract (free)", "plain_text": "plain text upload (free)"}.get(cert.text_source, cert.text_source) }}</strong> ·
+  Text source: <strong>{{ {"native_pdf": "native PDF text (free)", "docx": "Word document text (free)", "ocr": "local OCR — Tesseract (free)", "plain_text": "plain text upload (free)"}.get(cert.text_source, cert.text_source) }}</strong> ·
   Parsing: <strong>{{ {"ai": "AI text parsing (Claude — used tokens)", "ai_vision": "AI vision — read image directly (Claude — used more tokens)", "manual": "manually entered/corrected (free)", "heuristic": "local rules (free)"}.get(cert.extraction_method, cert.extraction_method) }}</strong>
   · <a class="row-link" href="/certificates/{{ cert.id }}/edit">Edit values</a>
 </p>

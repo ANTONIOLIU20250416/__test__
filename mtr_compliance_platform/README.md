@@ -15,8 +15,8 @@ real QA/purchasing decisions.
 
 ## What it does
 
-1. **Upload an MTR** — a native PDF, a scanned/photographed PDF or image
-   (JPG/PNG/TIFF), or a `.txt` copy.
+1. **Upload an MTR** — a native PDF, a Word `.docx`, a scanned/photographed
+   PDF or image (JPG/PNG/TIFF), or a `.txt` copy.
 2. **Get text out of the document, for free.** Native PDFs are read directly
    (`pypdf`). Anything else — a scan, a photo of a paper cert, a PDF with no
    text layer — goes through **local OCR (Tesseract)**, entirely on-device.
@@ -177,11 +177,25 @@ app/
   on clean 300 DPI scans of typed tables; skewed photos, low resolution, or
   handwritten certs will need better source images or a heavier OCR engine.
   Always spot-check `extracted_data` against the original document.
-- **The local parser is regex-based**, so it expects roughly
-  label-then-number patterns (e.g. "Cu 60.5", "Tensile Strength 58 ksi").
-  Certs with unusual layouts may need the opt-in AI text-parsing or
-  vision checkboxes, a rule tweak in `extraction.py`, or manual correction
-  via the certificate's "Edit values" page.
+- **The local parser handles two layouts**: simple "label then number" text
+  (e.g. "Cu 60.5") and real-world tables (an element-symbol header row, a
+  unit row, a limits row, then data rows - the format Legend's own MTR
+  template uses). Table parsing works positionally off the header/units row
+  since linear PDF/docx text extraction destroys visual column alignment.
+  Certs with a genuinely different layout may still need the opt-in AI
+  text-parsing or vision checkboxes, a rule tweak in `extraction.py`, or
+  manual correction via the certificate's "Edit values" page.
+- **Word `.docx` MTRs are supported** alongside PDF/image/`.txt` - table
+  cells extract cleanly since docx preserves real cell boundaries (unlike
+  PDF text, which just flattens a table's visual layout into a line of
+  text). No OCR needed; it's read directly like a native PDF.
+- **Supplier auto-detection is best-effort.** If you leave the upload
+  form's supplier fields blank, it searches the certificate's text for an
+  *existing* supplier's name. This only works when the document actually
+  names the supplier as text somewhere - many real MTR templates (including
+  Legend's own) only show the buyer's letterhead, not the supplier's name,
+  in which case there's nothing to detect and you still need to pick or
+  type the supplier yourself.
 - **Spec library ships with a small demo set**, but the `/specs` page supports
   add, edit, and delete (up to 12 chemistry elements + tensile/yield/
   elongation/hardness limits) — no code editing needed. Editing a seeded
