@@ -1,0 +1,124 @@
+{
+  "drawing_info": {
+    "drawing_no": "LV-BV-1001-A",
+    "part_name": "球閥閥體 Ball Valve Body",
+    "material": "CF8M (SS316 鑄件)",
+    "revision": "Rev. C",
+    "general_tolerance": "ISO 2768-mK",
+    "default_unit": "mm"
+  },
+  "dimensions": [
+    {
+      "item_no": 1,
+      "feature": "閥體總長 Overall Length",
+      "dimension_type": "linear",
+      "nominal_value": 108.0,
+      "upper_tol": 0.3,
+      "lower_tol": -0.3,
+      "unit": "mm",
+      "is_critical": true,
+      "measurement_method": "游標卡尺 Caliper",
+      "location_ref": "球號 1",
+      "notes": "單獨標註公差"
+    },
+    {
+      "item_no": 2,
+      "feature": "流道內徑 Bore Diameter",
+      "dimension_type": "diameter",
+      "nominal_value": 25.4,
+      "upper_tol": 0.1,
+      "lower_tol": 0.0,
+      "unit": "mm",
+      "is_critical": true,
+      "measurement_method": "內徑分厘卡 Bore Micrometer",
+      "location_ref": "球號 2",
+      "notes": "單獨標註公差"
+    },
+    {
+      "item_no": 3,
+      "feature": "端口螺紋 End Connection Thread",
+      "dimension_type": "thread",
+      "nominal_value": null,
+      "upper_tol": null,
+      "lower_tol": null,
+      "unit": "in",
+      "is_critical": true,
+      "gdt_symbol": null,
+      "measurement_method": "螺紋環規/塞規 Thread Ring & Plug Gauge",
+      "location_ref": "球號 3",
+      "notes": "規格 1 NPT，依 ANSI B1.20.1 檢驗"
+    },
+    {
+      "item_no": 4,
+      "feature": "閥體高度 Overall Height",
+      "dimension_type": "linear",
+      "nominal_value": 95.5,
+      "upper_tol": 0.2,
+      "lower_tol": -0.2,
+      "unit": "mm",
+      "is_critical": false,
+      "measurement_method": "高度規 Height Gauge",
+      "location_ref": "球號 4",
+      "notes": "套用未注公差 ISO 2768-mK"
+    },
+    {
+      "item_no": 5,
+      "feature": "閥座密封面平面度 Seat Face Flatness",
+      "dimension_type": "gdt",
+      "nominal_value": null,
+      "upper_tol": null,
+      "lower_tol": null,
+      "unit": "mm",
+      "upper_limit": 0.05,
+      "lower_limit": 0.0,
+      "is_critical": true,
+      "gdt_symbol": "flatness",
+      "measurement_method": "三次元量床 CMM",
+      "location_ref": "球號 5，基準 A",
+      "notes": "公差框 0.05"
+    },
+    {
+      "item_no": 6,
+      "feature": "密封面表面粗糙度 Seat Face Surface Finish",
+      "dimension_type": "surface_finish",
+      "nominal_value": null,
+      "unit": "Ra μm",
+      "upper_limit": 1.6,
+      "lower_limit": 0.0,
+      "is_critical": false,
+      "measurement_method": "表面粗糙度儀 Surface Roughness Tester",
+      "location_ref": "球號 6",
+      "notes": "Ra 1.6 以下"
+    },
+    {
+      "item_no": 7,
+      "feature": "閥體本體硬度 Body Hardness",
+      "dimension_type": "hardness",
+      "nominal_value": null,
+      "unit": "HRB",
+      "upper_limit": 95,
+      "lower_limit": 70,
+      "is_critical": false,
+      "measurement_method": "硬度計 Hardness Tester",
+      "location_ref": "非加工面任一處",
+      "notes": "鑄件材質規格內建議值"
+    },
+    {
+      "item_no": 8,
+      "feature": "兩安裝孔中心距 Mounting Hole Center Distance",
+      "dimension_type": "linear",
+      "nominal_value": 70.0,
+      "upper_tol": 0.15,
+      "lower_tol": -0.15,
+      "unit": "mm",
+      "is_critical": false,
+      "measurement_method": "游標卡尺 Caliper",
+      "location_ref": "球號 8",
+      "notes": ""
+    }
+  ],
+  "warnings": [
+    "第 3 項螺紋公差等級圖面未明確標示，建議依訂單/採購規範確認 2A/2B 等級",
+    "第 7 項硬度為材質規格建議值，非圖面直接標註，建議人工複核圖面是否另有硬度框"
+  ]
+}
