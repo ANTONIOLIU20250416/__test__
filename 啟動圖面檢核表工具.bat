@@ -1,10 +1,9 @@
 @echo off
-chcp 65001 >nul
 cd /d "%~dp0"
 
 if not exist venv\Scripts\activate.bat (
-    echo [錯誤] 找不到 venv 虛擬環境。
-    echo 請先依照 README 的安裝步驟執行：
+    echo [ERROR] Cannot find the venv folder here.
+    echo Please run the setup steps first:
     echo   python -m venv venv
     echo   venv\Scripts\activate
     echo   pip install -r requirements.txt
@@ -15,14 +14,24 @@ if not exist venv\Scripts\activate.bat (
 
 call venv\Scripts\activate.bat
 
+where streamlit >nul 2>nul
+if errorlevel 1 (
+    echo [ERROR] streamlit is not installed in this venv.
+    echo Run this once, then try again:
+    echo   pip install -r requirements.txt
+    echo.
+    pause
+    exit /b 1
+)
+
 if "%ANTHROPIC_API_KEY%"=="" (
-    echo 提示：目前沒有偵測到 ANTHROPIC_API_KEY 環境變數，
-    echo 稍後開啟的網頁左側可以直接貼上 API 金鑰使用。
+    echo NOTE: ANTHROPIC_API_KEY is not set as an environment variable.
+    echo You can paste your API key into the sidebar of the web page instead.
     echo.
 )
 
-echo 正在啟動「圖面判讀檢核表產生器」，瀏覽器會自動開啟...
-echo 若要關閉程式，回到這個黑色視窗按 Ctrl+C，或直接關閉此視窗。
+echo Starting the drawing checklist tool, your browser will open shortly...
+echo To stop it later, come back to this window and press Ctrl+C, or just close this window.
 echo.
 
 streamlit run app.py
