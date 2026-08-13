@@ -11,9 +11,59 @@ from pathlib import Path
 from typing import Optional
 
 from .prompts import SYSTEM_PROMPT, USER_PROMPT
-from .schema import DrawingAnalysis
+from .schema import DIMENSION_TYPES, DrawingAnalysis
 
 DEFAULT_MODEL = os.environ.get("DRAWING_QA_MODEL", "claude-sonnet-5")
+
+TOOL_NAME = "record_drawing_analysis"
+
+_DIMENSION_ITEM_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "item_no": {"type": "integer"},
+        "feature": {"type": "string"},
+        "dimension_type": {"type": "string", "enum": list(DIMENSION_TYPES)},
+        "nominal_value": {"type": ["number", "null"]},
+        "upper_tol": {"type": ["number", "null"]},
+        "lower_tol": {"type": ["number", "null"]},
+        "unit": {"type": "string"},
+        "upper_limit": {"type": ["number", "null"]},
+        "lower_limit": {"type": ["number", "null"]},
+        "is_critical": {"type": "boolean"},
+        "gdt_symbol": {"type": ["string", "null"]},
+        "measurement_method": {"type": "string"},
+        "location_ref": {"type": "string"},
+        "notes": {"type": "string"},
+    },
+    "required": ["item_no", "feature", "dimension_type"],
+}
+
+TOOL_SCHEMA = {
+    "name": TOOL_NAME,
+    "description": (
+        "記錄一張工程圖面判讀出的所有尺寸標註、公差與量測要求，"
+        "供後續自動產生品保檢核表使用。"
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "drawing_info": {
+                "type": "object",
+                "properties": {
+                    "drawing_no": {"type": "string"},
+                    "part_name": {"type": "string"},
+                    "material": {"type": "string"},
+                    "revision": {"type": "string"},
+                    "general_tolerance": {"type": "string"},
+                    "default_unit": {"type": "string"},
+                },
+            },
+            "dimensions": {"type": "array", "items": _DIMENSION_ITEM_SCHEMA},
+            "warnings": {"type": "array", "items": {"type": "string"}},
+        },
+        "required": ["drawing_info", "dimensions"],
+    },
+}
 
 _IMAGE_MEDIA_TYPES = {
     ".png": "image/png",
@@ -142,9 +192,24 @@ class DrawingExtractor:
             max_tokens=self.max_tokens,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": content}],
+            tools=[TOOL_SCHEMA],
+            tool_choice={"type": "tool", "name": TOOL_NAME},
         )
 
-        text_parts = [block.text for block in response.content if block.type == "text"]
-        raw_text = "\n".join(text_parts)
-        data = _extract_json_object(raw_text)
+        tool_uses = [b for b in response.content if b.type == "tool_use" and b.name == TOOL_NAME]
+        if tool_uses:
+            # response.input is already a parsed dict — no hand-rolled JSON parsing needed.
+            data = tool_uses[0].input
+        else:
+            # Fallback for the rare case the model answers in plain text instead
+            # of using the tool (e.g. hitting max_tokens mid tool-call).
+            text_parts = [b.text for b in response.content if b.type == "text"]
+            data = _extract_json_object("\n".join(text_parts))
+
+        if response.stop_reason == "max_tokens":
+            raise DrawingExtractorError(
+                "圖面判讀結果超過 max_tokens 上限而被截斷，請提高 DrawingExtractor(max_tokens=...) "
+                "或將圖面拆分成較小範圍後再分別判讀。"
+            )
+
         return DrawingAnalysis.from_dict(data)

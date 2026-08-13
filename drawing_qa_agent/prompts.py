@@ -64,10 +64,10 @@ SYSTEM_PROMPT = f"""你是一位資深機械/管閥零件品保工程師，專�
   warnings 陣列中說明是哪一項、為什麼不確定，讓人工複核。
 - 絕對不要遺漏任何有標尺寸或公差的地方；寧可多列出可疑項目讓人複核，也不要漏抓。
 
-只能輸出一個 JSON 物件，不要有任何額外文字、不要用 markdown code fence，格式需符合以下範例
+請務必呼叫 record_drawing_analysis 工具來回傳判讀結果，不要用一般文字回覆。工具欄位意義
 （範例僅示意欄位與型別，數值與內容請以實際圖面為準）：
 
 {JSON_SCHEMA_HINT}
 """
 
-USER_PROMPT = "請判讀這張工程圖面，依照系統指示輸出 JSON。"
+USER_PROMPT = "請判讀這張工程圖面，並呼叫 record_drawing_analysis 工具回傳判讀結果。"
