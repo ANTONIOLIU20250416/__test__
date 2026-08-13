@@ -11,7 +11,19 @@ pip install -r requirements.txt
 export ANTHROPIC_API_KEY=sk-ant-...   # 判讀圖面需要呼叫 Claude API
 ```
 
-## 使用方式
+## 使用方式（網頁介面，適合不熟指令的人）
+
+裝好套件後，直接雙擊執行 repo 根目錄的 `啟動圖面檢核表工具.bat`
+（或手動執行 `streamlit run app.py`），瀏覽器會自動開啟一個網頁：
+
+1. 左側輸入一次 Anthropic API 金鑰（若已用 `setx` 設定過環境變數則會自動偵測，不用再輸入）。
+2. 把圖面檔案拖進上傳區（PDF 或 PNG/JPG）。
+3. 填檢驗員姓名、確認日期，按「開始判讀圖面」。
+4. 判讀完會直接在網頁上看到擷取到的尺寸表格與警示，按「下載 Excel 檢核表」即可。
+
+全程不需要打任何指令，適合直接交給不熟悉程式的同事使用。
+
+## 使用方式（指令列）
 
 ### 1. 判讀圖面並產生檢核表
 
@@ -54,6 +66,8 @@ python -m drawing_qa_agent demo -o demo_checklist.xlsx
 ## 程式結構
 
 ```
+app.py                        Streamlit 網頁介面（上傳圖面 -> 下載 Excel）
+啟動圖面檢核表工具.bat          Windows 雙擊啟動網頁介面用
 drawing_qa_agent/
   schema.py      資料模型 (Dimension / DrawingInfo / DrawingAnalysis)
   prompts.py      給 Claude 的判讀提示詞與輸出 JSON 格式定義

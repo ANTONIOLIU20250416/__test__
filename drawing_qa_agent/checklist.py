@@ -41,7 +41,7 @@ _CHECKLIST_HEADERS = [
     ("備註", 24),
 ]
 
-_DIM_TYPE_LABELS = {
+DIM_TYPE_LABELS = {
     "linear": "線性尺寸",
     "diameter": "直徑",
     "radius": "半徑",
@@ -128,7 +128,7 @@ def _build_checklist_sheet(ws: Worksheet, analysis: DrawingAnalysis) -> None:
         values = [
             dim.item_no if dim.item_no else i,
             dim.feature,
-            _DIM_TYPE_LABELS.get(dim.dimension_type, dim.dimension_type),
+            DIM_TYPE_LABELS.get(dim.dimension_type, dim.dimension_type),
             dim.nominal_value,
             dim.upper_tol,
             dim.lower_tol,
