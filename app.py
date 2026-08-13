@@ -49,6 +49,18 @@ def _render_sidebar() -> None:
             st.session_state["api_key"] = key
 
     st.sidebar.divider()
+    with st.sidebar.expander("進階設定"):
+        st.number_input(
+            "最大輸出長度（token數）",
+            min_value=4000,
+            max_value=64000,
+            value=st.session_state.get("max_tokens", 16000),
+            step=2000,
+            key="max_tokens",
+            help="圖面尺寸項目很多、判讀出現「超過 max_tokens 上限而被截斷」時，把這個值調高再試一次。",
+        )
+
+    st.sidebar.divider()
     st.sidebar.caption(
         "本工具由 AI 判讀圖面，結果僅供初判參考，"
         "正式檢驗結果仍須由品保工程師覆核確認。"
@@ -131,7 +143,7 @@ def main() -> None:
 
         try:
             with st.spinner("AI 判讀圖面中，依複雜度可能需要 30 秒 ~ 2 分鐘…"):
-                extractor = DrawingExtractor(api_key=api_key)
+                extractor = DrawingExtractor(api_key=api_key, max_tokens=st.session_state.get("max_tokens", 16000))
                 analysis = extractor.analyze(tmp_path)
         except DrawingExtractorError as exc:
             st.error(f"判讀失敗：{exc}")

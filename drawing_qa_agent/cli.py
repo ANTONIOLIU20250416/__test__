@@ -34,7 +34,7 @@ def _parse_date(value: str | None) -> date:
 
 def cmd_analyze(args: argparse.Namespace) -> int:
     try:
-        extractor = DrawingExtractor(api_key=args.api_key, model=args.model)
+        extractor = DrawingExtractor(api_key=args.api_key, model=args.model, max_tokens=args.max_tokens)
         analysis = extractor.analyze(args.drawing)
     except DrawingExtractorError as exc:
         print(f"錯誤：{exc}", file=sys.stderr)
@@ -86,6 +86,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_analyze.add_argument("--model", default=None, help="Claude 模型，預設環境變數 DRAWING_QA_MODEL 或 claude-sonnet-5")
     p_analyze.add_argument("--api-key", default=None, help="Anthropic API 金鑰，預設讀取 ANTHROPIC_API_KEY")
     p_analyze.add_argument("--save-json", default=None, help="同時將判讀結果存成 JSON 檔")
+    p_analyze.add_argument(
+        "--max-tokens",
+        type=int,
+        default=None,
+        help="判讀結果的最大輸出長度（token數），圖面尺寸項目很多時可調高，預設讀環境變數 DRAWING_QA_MAX_TOKENS 或 16000",
+    )
     _add_common_output_args(p_analyze)
     p_analyze.set_defaults(func=cmd_analyze)
 
@@ -104,10 +110,13 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if getattr(args, "model", None) is None and args.command == "analyze":
-        from .extractor import DEFAULT_MODEL
+    if args.command == "analyze":
+        from .extractor import DEFAULT_MAX_TOKENS, DEFAULT_MODEL
 
-        args.model = DEFAULT_MODEL
+        if args.model is None:
+            args.model = DEFAULT_MODEL
+        if args.max_tokens is None:
+            args.max_tokens = DEFAULT_MAX_TOKENS
     return args.func(args)
 
 

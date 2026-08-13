@@ -14,6 +14,7 @@ from .prompts import SYSTEM_PROMPT, USER_PROMPT
 from .schema import DIMENSION_TYPES, DrawingAnalysis
 
 DEFAULT_MODEL = os.environ.get("DRAWING_QA_MODEL", "claude-sonnet-5")
+DEFAULT_MAX_TOKENS = int(os.environ.get("DRAWING_QA_MAX_TOKENS", "16000"))
 
 TOOL_NAME = "record_drawing_analysis"
 
@@ -150,7 +151,7 @@ class DrawingExtractor:
         self,
         api_key: Optional[str] = None,
         model: str = DEFAULT_MODEL,
-        max_tokens: int = 8000,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
     ) -> None:
         try:
             import anthropic
@@ -208,8 +209,9 @@ class DrawingExtractor:
 
         if response.stop_reason == "max_tokens":
             raise DrawingExtractorError(
-                "圖面判讀結果超過 max_tokens 上限而被截斷，請提高 DrawingExtractor(max_tokens=...) "
-                "或將圖面拆分成較小範圍後再分別判讀。"
+                f"這張圖面的尺寸項目較多，判讀結果在 {self.max_tokens} 個 token 的上限內被截斷了。"
+                "請調高「最大輸出長度」設定後再判讀一次（網頁介面在左側「進階設定」；"
+                "指令列可加上 --max-tokens 24000），或考慮把圖面拆成較小範圍分別判讀。"
             )
 
         return DrawingAnalysis.from_dict(data)
